@@ -1,32 +1,13 @@
-import { logger } from '../utils/logger';
+import * as Sentry from '@sentry/react';
 import { analyticsService } from './analytics.service';
-import { storage } from '../utils/storage';
 
-interface PerformanceMetrics {
-  timeToFirstByte: number;
-  timeToFirstPaint: number;
-  timeToFirstContentfulPaint: number;
-  timeToInteractive: number;
-  largestContentfulPaint: number;
-  firstInputDelay: number;
-  cumulativeLayoutShift: number;
-  resourceLoadTimes: Record<string, number>;
-  memoryUsage?: {
-    jsHeapSizeLimit: number;
-    totalJSHeapSize: number;
-    usedJSHeapSize: number;
-  };
-}
-
-class PerformanceService {
+export class PerformanceService {
   private static instance: PerformanceService;
-  private metrics: PerformanceMetrics;
-  private observers: Set<(metrics: PerformanceMetrics) => void>;
+  private metrics: Map<string, PerformanceMetric>;
 
   private constructor() {
-    this.observers = new Set();
-    this.metrics = this.initializeMetrics();
-    this.setupPerformanceObservers();
+    this.metrics = new Map();
+    this.initializeObservers();
   }
 
   public static getInstance(): PerformanceService {
@@ -36,111 +17,100 @@ class PerformanceService {
     return PerformanceService.instance;
   }
 
-  private initializeMetrics(): PerformanceMetrics {
-    return {
-      timeToFirstByte: 0,
-      timeToFirstPaint: 0,
-      timeToFirstContentfulPaint: 0,
-      timeToInteractive: 0,
-      largestContentfulPaint: 0,
-      firstInputDelay: 0,
-      cumulativeLayoutShift: 0,
-      resourceLoadTimes: {},
+  private initializeObservers() {
+    // Web Vitals
+    if ('web-vitals' in window) {
+      import('web-vitals').then(({ getCLS, getFID, getLCP }) => {
+        getCLS(this.handleCLS.bind(this));
+        getFID(this.handleFID.bind(this));
+        getLCP(this.handleLCP.bind(this));
+      });
+    }
+
+    // Performance Observer
+    if ('PerformanceObserver' in window) {
+      const paintObserver = new PerformanceObserver(this.handlePaintMetrics.bind(this));
+      paintObserver.observe({ entryTypes: ['paint'] });
+
+      const navigationObserver = new PerformanceObserver(this.handleNavigationMetrics.bind(this));
+      navigationObserver.observe({ entryTypes: ['navigation'] });
+    }
+  }
+
+  public startMeasurement(name: string, metadata?: Record<string, any>): void {
+    const metric: PerformanceMetric = {
+      name,
+      startTime: performance.now(),
+      metadata,
     };
+    this.metrics.set(name, metric);
   }
 
-  private setupPerformanceObservers(): void {
-    // Observe paint timing
-    const paintObserver = new PerformanceObserver((entries) => {
-      entries.getEntries().forEach((entry) => {
-        if (entry.name === 'first-paint') {
-          this.metrics.timeToFirstPaint = entry.startTime;
-        } else if (entry.name === 'first-contentful-paint') {
-          this.metrics.timeToFirstContentfulPaint = entry.startTime;
-        }
+  public endMeasurement(name: string, additionalMetadata?: Record<string, any>): void {
+    const metric = this.metrics.get(name);
+    if (!metric) return;
+
+    const duration = performance.now() - metric.startTime;
+    const metadata = { ...metric.metadata, ...additionalMetadata };
+
+    this.trackMetric(name, duration, metadata);
+    this.metrics.delete(name);
+  }
+
+  private trackMetric(name: string, value: number, metadata?: Record<string, any>) {
+    // Track in Sentry
+    Sentry.metrics.distribution(name, value, {
+      unit: 'millisecond',
+      ...metadata,
+    });
+
+    // Track in Analytics
+    analyticsService.trackEvent('performance_metric', {
+      metric: name,
+      value,
+      ...metadata,
+    });
+
+    // Log to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.debug(`Performance metric - ${name}:`, {
+        value,
+        metadata,
       });
-      this.notifyObservers();
-    });
-    paintObserver.observe({ entryTypes: ['paint'] });
-
-    // Observe largest contentful paint
-    const lcpObserver = new PerformanceObserver((entries) => {
-      const lastEntry = entries.getEntries().pop();
-      if (lastEntry) {
-        this.metrics.largestContentfulPaint = lastEntry.startTime;
-        this.notifyObservers();
-      }
-    });
-    lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
-
-    // Observe first input delay
-    const fidObserver = new PerformanceObserver((entries) => {
-      entries.getEntries().forEach((entry) => {
-        if (entry.duration > this.metrics.firstInputDelay) {
-          this.metrics.firstInputDelay = entry.duration;
-          this.notifyObservers();
-        }
-      });
-    });
-    fidObserver.observe({ entryTypes: ['first-input'] });
-
-    // Observe layout shifts
-    const clsObserver = new PerformanceObserver((entries) => {
-      entries.getEntries().forEach((entry: any) => {
-        this.metrics.cumulativeLayoutShift += entry.value;
-        this.notifyObservers();
-      });
-    });
-    clsObserver.observe({ entryTypes: ['layout-shift'] });
-
-    // Observe resource timing
-    const resourceObserver = new PerformanceObserver((entries) => {
-      entries.getEntries().forEach((entry) => {
-        this.metrics.resourceLoadTimes[entry.name] = entry.duration;
-      });
-      this.notifyObservers();
-    });
-    resourceObserver.observe({ entryTypes: ['resource'] });
-  }
-
-  public getMetrics(): PerformanceMetrics {
-    return { ...this.metrics };
-  }
-
-  public subscribe(callback: (metrics: PerformanceMetrics) => void): () => void {
-    this.observers.add(callback);
-    return () => this.observers.delete(callback);
-  }
-
-  private notifyObservers(): void {
-    this.observers.forEach(callback => callback(this.metrics));
-    this.saveMetrics();
-  }
-
-  private saveMetrics(): void {
-    try {
-      storage.setItem('performance_metrics', JSON.stringify(this.metrics));
-      analyticsService.trackEvent('performance_metrics_updated', this.metrics);
-    } catch (error) {
-      logger.error('Failed to save performance metrics', { error });
     }
   }
 
-  public async measureMemoryUsage(): Promise<void> {
-    try {
-      if ('memory' in performance) {
-        const memory = (performance as any).memory;
-        this.metrics.memoryUsage = {
-          jsHeapSizeLimit: memory.jsHeapSizeLimit,
-          totalJSHeapSize: memory.totalJSHeapSize,
-          usedJSHeapSize: memory.usedJSHeapSize,
-        };
-        this.notifyObservers();
-      }
-    } catch (error) {
-      logger.error('Failed to measure memory usage', { error });
-    }
+  private handleCLS(metric: { value: number }) {
+    this.trackMetric('cumulative_layout_shift', metric.value * 1000);
   }
+
+  private handleFID(metric: { value: number }) {
+    this.trackMetric('first_input_delay', metric.value);
+  }
+
+  private handleLCP(metric: { value: number }) {
+    this.trackMetric('largest_contentful_paint', metric.value);
+  }
+
+  private handlePaintMetrics(list: PerformanceObserverEntryList) {
+    list.getEntries().forEach(entry => {
+      this.trackMetric(`paint_${entry.name}`, entry.startTime);
+    });
+  }
+
+  private handleNavigationMetrics(list: PerformanceObserverEntryList) {
+    const navEntry = list.getEntries()[0] as PerformanceNavigationTiming;
+    
+    this.trackMetric('dom_load', navEntry.domContentLoadedEventEnd - navEntry.domContentLoadedEventStart);
+    this.trackMetric('page_load', navEntry.loadEventEnd - navEntry.loadEventStart);
+    this.trackMetric('ttfb', navEntry.responseStart - navEntry.requestStart);
+  }
+}
+
+interface PerformanceMetric {
+  name: string;
+  startTime: number;
+  metadata?: Record<string, any>;
 }
 
 export const performanceService = PerformanceService.getInstance(); 
