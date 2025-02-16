@@ -2,29 +2,26 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
-    "lib": ["es2022"],
+    "module": "CommonJS",
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
       "@config/*": ["src/config/*"],
       "@controllers/*": ["src/controllers/*"],
-      "@services/*": ["src/services/*"],
       "@middleware/*": ["src/middleware/*"],
+      "@models/*": ["src/models/*"],
+      "@routes/*": ["src/routes/*"],
+      "@services/*": ["src/services/*"],
       "@utils/*": ["src/utils/*"],
       "@types/*": ["src/types/*"]
     },
-    "types": ["node", "jest"]
+    "types": ["node", "jest", "@types/jest"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]

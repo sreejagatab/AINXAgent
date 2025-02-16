@@ -1,69 +1,83 @@
 import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
 import { redis } from '../lib/redis';
-import { logger } from '../utils/logger';
+import { config } from '../config';
 import { ApiError } from '../utils/errors';
-import type { RateLimitOptions } from '../types/middleware.types';
+import type { Request, Response } from 'express';
 
-const RedisStore = require('rate-limit-redis');
+// Global rate limiter
+export const globalRateLimiter = rateLimit({
+  store: new RedisStore({
+    prefix: 'rate-limit:global:',
+    // @ts-ignore - Redis client version mismatch
+    client: redis,
+  }),
+  windowMs: config.rateLimit.window, // Default: 15 minutes
+  max: config.rateLimit.max, // Default: 100 requests per window
+  message: 'Too many requests from this IP, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req: Request, res: Response) => {
+    throw new ApiError('Rate limit exceeded', 429);
+  },
+});
 
-export function rateLimiter(options: RateLimitOptions = {}) {
-  const {
-    windowMs = 15 * 60 * 1000, // 15 minutes
-    max = 100, // Limit each IP to 100 requests per windowMs
-    message = 'Too many requests from this IP, please try again later',
-    keyGenerator = (req) => {
-      return req.user?.id 
-        ? `rate-limit:user:${req.user.id}` 
-        : `rate-limit:ip:${req.ip}`;
-    },
-  } = options;
+// API-specific rate limiter
+export const apiRateLimiter = rateLimit({
+  store: new RedisStore({
+    prefix: 'rate-limit:api:',
+    // @ts-ignore - Redis client version mismatch
+    client: redis,
+  }),
+  windowMs: config.rateLimit.api.window, // Default: 1 minute
+  max: config.rateLimit.api.max, // Default: 60 requests per window
+  message: 'Too many API requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req: Request, res: Response) => {
+    throw new ApiError('API rate limit exceeded', 429);
+  },
+});
 
+// AI completion rate limiter
+export const aiRateLimiter = rateLimit({
+  store: new RedisStore({
+    prefix: 'rate-limit:ai:',
+    // @ts-ignore - Redis client version mismatch
+    client: redis,
+  }),
+  windowMs: config.rateLimit.ai.window, // Default: 1 minute
+  max: config.rateLimit.ai.max, // Default: 10 requests per window
+  message: 'Too many AI requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req: Request, res: Response) => {
+    throw new ApiError('AI rate limit exceeded', 429);
+  },
+});
+
+// User-specific rate limiter factory
+export const createUserRateLimiter = (
+  prefix: string,
+  windowMs: number,
+  max: number
+) => {
   return rateLimit({
     store: new RedisStore({
+      prefix: `rate-limit:user:${prefix}:`,
+      // @ts-ignore - Redis client version mismatch
       client: redis,
-      prefix: 'rate-limit:',
-      // Expire keys after window
-      expiry: windowMs / 1000,
     }),
     windowMs,
     max,
-    message,
-    keyGenerator,
-    handler: (req, res) => {
-      logger.warn('Rate limit exceeded:', {
-        ip: req.ip,
-        userId: req.user?.id,
-        path: req.path,
-      });
-
-      throw ApiError.tooManyRequests(message);
+    message: 'User rate limit exceeded, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req: Request, res: Response) => {
+      throw new ApiError('User rate limit exceeded', 429);
     },
-    skip: (req) => {
-      // Skip rate limiting for certain conditions
-      return req.ip === '127.0.0.1' || // Skip localhost
-             req.user?.role === 'ADMIN'; // Skip admins
+    keyGenerator: (req: Request) => {
+      return req.user?.id || req.ip;
     },
-    statusCode: 429,
-    headers: true, // Send rate limit headers
-    draft_polli_ratelimit_headers: true, // Use standardized headers
   });
-}
-
-// Specific rate limiters
-export const apiLimiter = rateLimiter({
-  windowMs: 60 * 1000, // 1 minute
-  max: 60, // 60 requests per minute
-  message: 'Too many API requests, please try again later',
-});
-
-export const authLimiter = rateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts
-  message: 'Too many authentication attempts, please try again later',
-});
-
-export const uploadLimiter = rateLimiter({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // 10 uploads
-  message: 'Upload limit exceeded, please try again later',
-}); 
+}; 

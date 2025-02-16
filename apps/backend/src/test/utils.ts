@@ -1,69 +1,103 @@
-import { PrismaClient, User } from '@prisma/client';
-import { redis } from '../lib/redis';
-import { config } from '../config';
-import bcrypt from 'bcryptjs';
+import { prisma } from '../lib/prisma';
+import { hash } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { config } from '../config';
+import type { User, Prompt, Tool } from '@prisma/client';
 
-const prisma = new PrismaClient();
+export async function createTestUser(data: Partial<User> = {}): Promise<User> {
+  const password = await hash(data.password || 'password123', 10);
+  
+  return await prisma.user.create({
+    data: {
+      email: data.email || 'test@example.com',
+      name: data.name || 'Test User',
+      password,
+      role: data.role || 'USER',
+      ...data,
+    },
+  });
+}
 
-export const testUtils = {
-  async createUser(data: Partial<User> = {}): Promise<User> {
-    return await prisma.user.create({
-      data: {
-        email: data.email || `test-${Date.now()}@example.com`,
-        password: await bcrypt.hash(data.password || 'password123', 10),
-        name: data.name || 'Test User',
-        role: data.role || 'USER',
-        ...data,
+export async function createTestPrompt(
+  userId: string,
+  data: Partial<Prompt> = {}
+): Promise<Prompt> {
+  return await prisma.prompt.create({
+    data: {
+      name: data.name || 'Test Prompt',
+      template: data.template || 'Test template with {{variable}}',
+      variables: data.variables || [
+        {
+          name: 'variable',
+          type: 'string',
+          required: true,
+        },
+      ],
+      userId,
+      ...data,
+    },
+  });
+}
+
+export async function createTestTool(
+  userId: string,
+  data: Partial<Tool> = {}
+): Promise<Tool> {
+  return await prisma.tool.create({
+    data: {
+      name: data.name || 'Test Tool',
+      type: data.type || 'http',
+      parameters: data.parameters || {
+        url: 'https://api.example.com',
+        method: 'GET',
       },
-    });
-  },
+      userId,
+      ...data,
+    },
+  });
+}
 
-  generateToken(user: User): string {
-    return jwt.sign(
-      { userId: user.id, role: user.role },
-      config.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-  },
+export function generateTestToken(userId: string, role: string = 'USER'): string {
+  return jwt.sign(
+    { userId, role },
+    config.auth.jwtSecret,
+    { expiresIn: '1h' }
+  );
+}
 
-  async clearDatabase() {
-    const tables = await prisma.$queryRaw<
-      Array<{ tablename: string }>
-    >`SELECT tablename FROM pg_tables WHERE schemaname='public'`;
+export async function clearDatabase(): Promise<void> {
+  const tables = await prisma.$queryRaw<
+    Array<{ tablename: string }>
+  >`SELECT tablename FROM pg_tables WHERE schemaname='public'`;
 
-    await Promise.all(
-      tables.map(({ tablename }) =>
-        prisma.$executeRawUnsafe(`TRUNCATE TABLE "${tablename}" CASCADE`)
-      )
-    );
-  },
+  for (const { tablename } of tables) {
+    if (tablename !== '_prisma_migrations') {
+      await prisma.$executeRawUnsafe(
+        `TRUNCATE TABLE "public"."${tablename}" CASCADE;`
+      );
+    }
+  }
+}
 
-  async clearCache() {
-    await redis.flushall();
-  },
+export function mockRequest(overrides = {}) {
+  return {
+    user: { id: 'test-user-id', role: 'USER' },
+    body: {},
+    query: {},
+    params: {},
+    headers: {},
+    ...overrides,
+  };
+}
 
-  async cleanup() {
-    await this.clearDatabase();
-    await this.clearCache();
-  },
-};
-
-export const mockRequest = () => {
-  const req: any = {};
-  req.body = jest.fn().mockReturnValue(req);
-  req.params = jest.fn().mockReturnValue(req);
-  req.query = jest.fn().mockReturnValue(req);
-  return req;
-};
-
-export const mockResponse = () => {
+export function mockResponse() {
   const res: any = {};
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
   res.send = jest.fn().mockReturnValue(res);
-  res.end = jest.fn().mockReturnValue(res);
   return res;
-};
+}
 
-export const mockNext = jest.fn(); 
+export function mockNext() {
+  return jest.fn();
+} 

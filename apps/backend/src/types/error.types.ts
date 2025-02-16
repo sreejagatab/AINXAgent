@@ -1,9 +1,18 @@
-export interface ErrorResponse {
-  status: 'error';
-  code: string;
-  message: string;
-  details?: Record<string, any>;
+export interface ApiErrorOptions {
+  code?: string;
+  details?: any;
   stack?: string;
+}
+
+export interface ErrorResponse {
+  error: {
+    name: string;
+    message: string;
+    statusCode: number;
+    code?: string;
+    details?: any;
+    stack?: string;
+  };
 }
 
 export interface ValidationError {
@@ -14,24 +23,30 @@ export interface ValidationError {
 
 export interface DatabaseError {
   code: string;
-  meta?: {
-    target?: string[];
-    cause?: string;
-  };
+  message: string;
+  details?: any;
 }
 
 export type ErrorCode =
-  | 'BAD_REQUEST'
-  | 'UNAUTHORIZED'
-  | 'FORBIDDEN'
+  | 'VALIDATION_ERROR'
+  | 'AUTHENTICATION_ERROR'
+  | 'AUTHORIZATION_ERROR'
   | 'NOT_FOUND'
   | 'CONFLICT'
-  | 'TOO_MANY_REQUESTS'
+  | 'RATE_LIMIT_EXCEEDED'
   | 'INTERNAL_ERROR'
-  | 'VALIDATION_ERROR'
+  | 'BAD_REQUEST'
   | 'DATABASE_ERROR'
-  | 'AUTH_ERROR'
-  | 'API_ERROR';
+  | 'INTEGRATION_ERROR'
+  | 'SERVICE_UNAVAILABLE';
+
+export interface ErrorMetadata {
+  requestId?: string;
+  userId?: string;
+  path?: string;
+  timestamp?: string;
+  [key: string]: any;
+}
 
 export interface ErrorDetails {
   [key: string]: any;

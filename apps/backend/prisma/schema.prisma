@@ -10,22 +10,17 @@ datasource db {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
-  password      String
   name          String?
-  role          UserRole  @default(USER)
-  apiKey        String?   @unique
-  usageLimit    Int       @default(1000)
-  usageCount    Int       @default(0)
-  isActive      Boolean   @default(true)
-  lastLoginAt   DateTime?
+  password      String
+  role          Role      @default(USER)
+  apiKeys       ApiKey[]
   prompts       Prompt[]
   tools         Tool[]
   evaluations   Evaluation[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  @@index([email])
-  @@index([apiKey])
+  @@map("users")
 }
 
 model Prompt {
@@ -33,18 +28,17 @@ model Prompt {
   name          String
   description   String?
   template      String
-  variables     Json
+  variables     Json      // Array of PromptVariable
   category      String?
-  version       Int       @default(1)
   isPublic      Boolean   @default(false)
+  version       Int       @default(1)
   userId        String
   user          User      @relation(fields: [userId], references: [id])
   evaluations   Evaluation[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  @@index([userId])
-  @@index([category])
+  @@map("prompts")
 }
 
 model Tool {
@@ -52,15 +46,15 @@ model Tool {
   name          String
   description   String?
   type          String
-  parameters    Json
+  parameters    Json      // Tool configuration
   isPublic      Boolean   @default(false)
   userId        String
   user          User      @relation(fields: [userId], references: [id])
+  executions    ToolExecution[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  @@index([userId])
-  @@index([type])
+  @@map("tools")
 }
 
 model Evaluation {
@@ -70,17 +64,44 @@ model Evaluation {
   userId        String
   user          User      @relation(fields: [userId], references: [id])
   response      String
-  scores        Json
-  suggestions   String[]
-  metadata      Json?
+  scores        Json      // Evaluation scores
+  suggestions   Json      // Array of suggestions
+  metadata      Json?     // Additional metadata
   createdAt     DateTime  @default(now())
 
-  @@index([promptId])
-  @@index([userId])
+  @@map("evaluations")
 }
 
-enum UserRole {
-  ADMIN
+model ToolExecution {
+  id            String    @id @default(cuid())
+  toolId        String
+  tool          Tool      @relation(fields: [toolId], references: [id])
+  userId        String
+  parameters    Json      // Execution parameters
+  result        Json?     // Execution result
+  status        String    // success, error, pending
+  error         String?   // Error message if failed
+  executionTime BigInt    // Timestamp in milliseconds
+  createdAt     DateTime  @default(now())
+
+  @@map("tool_executions")
+}
+
+model ApiKey {
+  id            String    @id @default(cuid())
+  key           String    @unique
+  name          String?
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  lastUsed      DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("api_keys")
+}
+
+enum Role {
   USER
-  API
+  ADMIN
 } 

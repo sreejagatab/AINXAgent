@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
-import { Prisma } from '@prisma/client';
-import { ApiError } from '../utils/errors';
+import { ApiError, isApiError } from '../utils/errors';
 import { logger } from '../utils/logger';
 import { config } from '../config';
 
@@ -11,66 +9,82 @@ export function errorHandler(
   res: Response,
   next: NextFunction
 ) {
-  // Log error
-  logger.error('Error:', {
+  logger.error('Error handling request:', {
     error: error.message,
     stack: error.stack,
     path: req.path,
     method: req.method,
+    ip: req.ip,
+    userId: req.user?.id,
   });
 
   // Handle known errors
-  if (error instanceof ApiError) {
-    return res.status(error.statusCode).json({
-      status: 'error',
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      ...(config.NODE_ENV === 'development' && { stack: error.stack }),
-    });
+  if (isApiError(error)) {
+    return res.status(error.statusCode).json(error.toJSON());
   }
 
-  // Handle Zod validation errors
-  if (error instanceof ZodError) {
+  // Handle validation errors
+  if (error.name === 'ValidationError') {
     return res.status(400).json({
-      status: 'error',
-      code: 'VALIDATION_ERROR',
-      message: 'Validation failed',
-      details: error.errors,
+      error: {
+        name: 'ValidationError',
+        message: error.message,
+        statusCode: 400,
+      },
     });
   }
 
-  // Handle Prisma errors
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    switch (error.code) {
-      case 'P2002':
-        return res.status(409).json({
-          status: 'error',
-          code: 'UNIQUE_CONSTRAINT',
-          message: 'Unique constraint violation',
-          details: { fields: error.meta?.target },
-        });
-      case 'P2025':
-        return res.status(404).json({
-          status: 'error',
-          code: 'NOT_FOUND',
-          message: 'Record not found',
-        });
-      default:
-        logger.error('Prisma error:', { error });
-        return res.status(500).json({
-          status: 'error',
-          code: 'DATABASE_ERROR',
-          message: 'Database operation failed',
-        });
-    }
+  // Handle JWT errors
+  if (error.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      error: {
+        name: 'AuthenticationError',
+        message: 'Invalid token',
+        statusCode: 401,
+      },
+    });
   }
 
-  // Handle all other errors
-  return res.status(500).json({
-    status: 'error',
-    code: 'INTERNAL_ERROR',
-    message: 'Internal server error',
-    ...(config.NODE_ENV === 'development' && { stack: error.stack }),
-  });
+  if (error.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      error: {
+        name: 'AuthenticationError',
+        message: 'Token expired',
+        statusCode: 401,
+      },
+    });
+  }
+
+  // Handle database errors
+  if (error.name === 'PrismaClientKnownRequestError') {
+    return res.status(400).json({
+      error: {
+        name: 'DatabaseError',
+        message: 'Database operation failed',
+        statusCode: 400,
+      },
+    });
+  }
+
+  // Handle unknown errors
+  const isProduction = config.env === 'production';
+  const errorResponse = {
+    error: {
+      name: isProduction ? 'InternalServerError' : error.name,
+      message: isProduction ? 'Internal server error' : error.message,
+      statusCode: 500,
+      ...(isProduction ? {} : { stack: error.stack }),
+    },
+  };
+
+  return res.status(500).json(errorResponse);
+}
+
+export function notFoundHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const error = new ApiError(`Route not found: ${req.path}`, 404);
+  next(error);
 } 

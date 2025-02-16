@@ -1,39 +1,39 @@
 import { Router } from 'express';
-import { apiDocsGenerator } from '../utils/docs.generator';
-import { cache } from '../middleware/cache';
-import { rateLimiter } from '../middleware/rate-limit';
 import swaggerUi from 'swagger-ui-express';
+import * as path from 'path';
+import * as fs from 'fs';
+import { authenticate } from '../middleware/auth';
+import { config } from '../config';
 
 const router = Router();
 
-// Serve API documentation UI
-router.use(
-  '/',
-  rateLimiter({ windowMs: 60000, max: 100 }), // 100 requests per minute
-  cache(3600), // Cache for 1 hour
-  async (req, res, next) => {
-    try {
-      const spec = await apiDocsGenerator.generateDocs(req.app._router);
-      swaggerUi.setup(spec)(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// Load OpenAPI specification
+const openApiPath = path.join(__dirname, '../../docs/openapi.yaml');
+const openApiSpec = fs.readFileSync(openApiPath, 'utf8');
 
-// Serve raw OpenAPI spec
-router.get(
-  '/spec',
-  rateLimiter({ windowMs: 60000, max: 50 }), // 50 requests per minute
-  cache(3600),
-  async (req, res, next) => {
-    try {
-      const spec = await apiDocsGenerator.generateDocs(req.app._router);
-      res.json(spec);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// Configure Swagger UI
+const swaggerUiOptions = {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'AINXAgent API Documentation',
+  customfavIcon: '/favicon.ico',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+    tryItOutEnabled: true,
+  },
+};
 
-export { router as docsRouter }; 
+// Serve documentation only in non-production environments
+if (config.env !== 'production') {
+  router.use('/', swaggerUi.serve);
+  router.get('/', swaggerUi.setup(openApiSpec, swaggerUiOptions));
+} else {
+  // In production, require authentication
+  router.use(authenticate);
+  router.use('/', swaggerUi.serve);
+  router.get('/', swaggerUi.setup(openApiSpec, swaggerUiOptions));
+}
+
+export const docsRouter = router; 

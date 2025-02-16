@@ -1,133 +1,74 @@
-import React, { Component, ErrorInfo } from 'react';
-import { errorService } from '../services/error.service';
-import { Button } from './Button';
-import { logger } from '../utils/logger';
+import { Component, ErrorInfo, ReactNode } from 'react';
+import { Button } from './ui/Button';
 
 interface Props {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
-  onReset?: () => void;
+  children: ReactNode;
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo: ErrorInfo | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null,
-    };
-  }
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
 
-  static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
       error,
-      errorInfo: null,
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    this.setState({ errorInfo });
-
-    errorService.handleError(error, {
-      componentStack: errorInfo.componentStack,
-      ...this.getErrorContext(),
-    });
-
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
-    }
-
-    logger.error('React error boundary caught error', {
-      error,
-      errorInfo,
-      context: this.getErrorContext(),
-    });
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Uncaught error:', error, errorInfo);
+    // Here you could send the error to an error reporting service
   }
 
-  private getErrorContext(): Record<string, any> {
-    return {
-      timestamp: new Date().toISOString(),
-      url: window.location.href,
-      userAgent: navigator.userAgent,
-    };
-  }
-
-  private handleReset = (): void => {
+  private handleReset = () => {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null,
     });
-
-    if (this.props.onReset) {
-      this.props.onReset();
-    }
   };
 
-  private handleReportError = async (): Promise<void> => {
-    const { error, errorInfo } = this.state;
-    if (error) {
-      await errorService.handleError(error, {
-        componentStack: errorInfo?.componentStack,
-        reported: true,
-        ...this.getErrorContext(),
-      });
-    }
-  };
-
-  render(): React.ReactNode {
-    const { hasError, error, errorInfo } = this.state;
-    const { children, fallback } = this.props;
-
-    if (!hasError) {
-      return children;
-    }
-
-    if (fallback) {
-      return fallback;
-    }
-
-    return (
-      <div className="error-boundary">
-        <div className="error-content">
-          <h1>Something went wrong</h1>
-          <p>We apologize for the inconvenience. Please try again or contact support if the problem persists.</p>
-          
-          {process.env.NODE_ENV === 'development' && (
-            <div className="error-details">
-              <h3>Error Details:</h3>
-              <pre>{error?.toString()}</pre>
-              {errorInfo && (
-                <>
-                  <h3>Component Stack:</h3>
-                  <pre>{errorInfo.componentStack}</pre>
-                </>
-              )}
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+          <div className="max-w-md w-full space-y-8">
+            <div>
+              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+                Something went wrong
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                {this.state.error?.message || 'An unexpected error occurred'}
+              </p>
             </div>
-          )}
-
-          <div className="error-actions">
-            <Button onClick={this.handleReset} variant="primary">
-              Try Again
-            </Button>
-            <Button onClick={this.handleReportError} variant="secondary">
-              Report Error
-            </Button>
-            <Button onClick={() => window.location.reload()} variant="secondary">
-              Reload Page
-            </Button>
+            <div className="mt-8 space-y-6">
+              <Button
+                onClick={() => window.location.reload()}
+                className="w-full"
+                variant="primary"
+              >
+                Reload page
+              </Button>
+              <Button
+                onClick={this.handleReset}
+                className="w-full"
+                variant="secondary"
+              >
+                Try again
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
+
+    return this.props.children;
   }
 } 

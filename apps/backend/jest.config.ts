@@ -31,7 +31,6 @@ const config: Config.InitialOptions = {
       statements: 80,
     },
   },
-  coverageReporters: ['text', 'lcov', 'clover'],
   verbose: true,
   testTimeout: 30000,
 };

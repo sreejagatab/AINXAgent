@@ -1,65 +1,94 @@
-import React, { Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { Layout } from '../components/layout/Layout';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { ProtectedRoute } from './ProtectedRoute';
-import { useAuth } from '../hooks/useAuth';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { Layout } from '../components/Layout';
+import { ProtectedRoute } from '../components/ProtectedRoute';
+import { LoginPage } from '../pages/auth/LoginPage';
+import { RegisterPage } from '../pages/auth/RegisterPage';
+import { DashboardPage } from '../pages/DashboardPage';
+import { PromptsPage } from '../pages/prompts/PromptsPage';
+import { PromptDetailPage } from '../pages/prompts/PromptDetailPage';
+import { CreatePromptPage } from '../pages/prompts/CreatePromptPage';
+import { ToolsPage } from '../pages/tools/ToolsPage';
+import { ToolDetailPage } from '../pages/tools/ToolDetailPage';
+import { CreateToolPage } from '../pages/tools/CreateToolPage';
+import { NotFoundPage } from '../pages/NotFoundPage';
 
-// Lazy load components
-const Dashboard = React.lazy(() => import('../pages/Dashboard'));
-const Prompts = React.lazy(() => import('../pages/Prompts'));
-const History = React.lazy(() => import('../pages/History'));
-const Analytics = React.lazy(() => import('../pages/Analytics'));
-const Settings = React.lazy(() => import('../pages/Settings'));
-const Login = React.lazy(() => import('../pages/auth/Login'));
-const Register = React.lazy(() => import('../pages/auth/Register'));
-const ForgotPassword = React.lazy(() => import('../pages/auth/ForgotPassword'));
-const ResetPassword = React.lazy(() => import('../pages/auth/ResetPassword'));
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Layout />,
+    children: [
+      {
+        path: 'login',
+        element: <LoginPage />,
+      },
+      {
+        path: 'register',
+        element: <RegisterPage />,
+      },
+      {
+        path: 'dashboard',
+        element: (
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'prompts',
+        element: (
+          <ProtectedRoute>
+            <PromptsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'prompts/create',
+        element: (
+          <ProtectedRoute>
+            <CreatePromptPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'prompts/:id',
+        element: (
+          <ProtectedRoute>
+            <PromptDetailPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'tools',
+        element: (
+          <ProtectedRoute>
+            <ToolsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'tools/create',
+        element: (
+          <ProtectedRoute>
+            <CreateToolPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'tools/:id',
+        element: (
+          <ProtectedRoute>
+            <ToolDetailPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '*',
+        element: <NotFoundPage />,
+      },
+    ],
+  },
+]);
 
-export const AppRoutes: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-
-  return (
-    <Suspense fallback={<LoadingSpinner fullScreen />}>
-      <Routes>
-        {/* Public Routes */}
-        <Route
-          path="/login"
-          element={
-            isAuthenticated ? <Navigate to="/dashboard" /> : <Login />
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            isAuthenticated ? <Navigate to="/dashboard" /> : <Register />
-          }
-        />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/prompts" element={<Prompts />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/settings" element={<Settings />} />
-          </Route>
-        </Route>
-
-        {/* Redirect root to dashboard or login */}
-        <Route
-          path="/"
-          element={
-            <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />
-          }
-        />
-
-        {/* 404 Page */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
-  );
-}; 
+export function AppRoutes() {
+  return <RouterProvider router={router} />;
+} 

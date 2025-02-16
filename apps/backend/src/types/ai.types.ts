@@ -7,14 +7,17 @@ export interface AIModelConfig {
   presencePenalty: number;
 }
 
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export interface CompletionRequest {
   model: string;
-  messages: {
-    role: 'system' | 'user' | 'assistant';
-    content: string;
-  }[];
+  messages: ChatMessage[];
   temperature?: number;
   maxTokens?: number;
+  stream?: boolean;
 }
 
 export interface EmbeddingRequest {
@@ -22,15 +25,9 @@ export interface EmbeddingRequest {
   model?: string;
 }
 
-export interface SearchResult {
-  content: string;
-  metadata: Record<string, any>;
-  score: number;
-}
-
 export interface AIResponse<T> {
   data: T;
-  usage?: {
+  usage: {
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
@@ -55,16 +52,6 @@ export type MessageRole =
   | 'user'
   | 'assistant'
   | 'function';
-
-export interface ChatMessage {
-  role: MessageRole;
-  content: string;
-  name?: string;
-  functionCall?: {
-    name: string;
-    arguments: string;
-  };
-}
 
 export interface CompletionOptions {
   model?: AIModel;
@@ -134,7 +121,7 @@ export interface ModelCapabilities {
   costPerToken: number;
 }
 
-export type PromptVariable = {
+export interface PromptVariable {
   name: string;
   type: 'string' | 'number' | 'boolean' | 'array' | 'object';
   required: boolean;
@@ -146,30 +133,31 @@ export type PromptVariable = {
     pattern?: string;
     enum?: any[];
   };
-};
+}
 
-export type PromptTemplate = {
+export interface PromptTemplate {
   name: string;
   description?: string;
   template: string;
   variables: PromptVariable[];
   category?: string;
-  version: number;
-  metadata?: Record<string, any>;
-};
+  isPublic?: boolean;
+  version?: number;
+}
 
-export type AIEvaluation = {
+export interface AIEvaluation {
   scores: {
     accuracy: number;
     relevance: number;
     coherence: number;
     creativity: number;
-    [key: string]: number;
   };
-  feedback: string[];
   suggestions: string[];
-  metadata?: Record<string, any>;
-};
+  metadata: {
+    strengths: string[];
+    weaknesses: string[];
+  };
+}
 
 export interface AIService {
   generateResponse(

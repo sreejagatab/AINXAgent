@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { User, UserRole } from '@prisma/client';
+import { Request } from 'express';
 
 export const registerSchema = z.object({
   email: z.string().email(),
@@ -77,4 +78,57 @@ export interface AuthMetrics {
   loginAttempts: number;
   failedLogins: number;
   passwordResets: number;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+  role: string;
+}
+
+export interface AuthRequest extends Request {
+  user?: AuthUser;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegistrationData {
+  email: string;
+  password: string;
+  name: string;
+  role?: string;
+}
+
+export interface AuthTokenPayload {
+  userId: string;
+  email: string;
+  role: string;
+}
+
+export interface AuthResponse {
+  user: AuthUser;
+  token: string;
+}
+
+export interface ApiKeyData {
+  id: string;
+  key: string;
+  name?: string;
+  userId: string;
+  lastUsed?: Date;
+  expiresAt?: Date;
+}
+
+export interface TokenData {
+  token: string;
+  expiresIn: number;
+}
+
+export interface RefreshTokenPayload {
+  userId: string;
+  tokenVersion: number;
 } 
