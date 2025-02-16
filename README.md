@@ -490,4 +490,4 @@ flowchart TD
 <a id="additional-resources"></a>
 ## Additional Resources
 
-![System Overview](./images/EPE_Ai_Agent.webp)
+![System Overview](./images/EPE_Ai_Agent.png)
