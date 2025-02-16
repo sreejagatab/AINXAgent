@@ -1,0 +1,135 @@
+# Root Level Files (8)
+1. README.md
+2. docker-compose.yml
+3. Dockerfile
+4. .env.example
+5. .gitignore
+6. package.json
+7. tsconfig.json
+8. nx.json
+
+# Directory Structure
+
+## apps/ (3 main directories)
+### frontend/ (9 files + directories)
+- public/
+  - assets/
+  - icons/
+- src/
+  - app/
+    - layout/
+    - components/
+    - hooks/
+    - stores/
+    - types/
+  - features/
+    - prompt-engineering/
+    - knowledge-base/
+    - tools/
+    - testing/
+  - blog/
+    - components/
+    - pages/
+    - templates/
+    - utils/
+  - styles/
+- package.json
+- tailwind.config.js
+- vite.config.ts
+
+### backend/ (7 files + directories)
+- src/
+  - api/
+    - routes/
+    - controllers/
+    - middlewares/
+    - validators/
+  - services/
+    - prompt/
+    - blog/
+    - tools/
+    - analytics/
+  - database/
+    - models/
+    - migrations/
+    - seeds/
+  - config/
+- package.json
+- tsconfig.json
+
+### blog/ (3 directories)
+- content/
+  - posts/
+  - success-stories/
+  - use-cases/
+- templates/
+- plugins/
+
+## libs/ (3 main libraries)
+### shared/ (4 files + directories)
+- src/
+  - types/
+  - utils/
+  - constants/
+- package.json
+
+### ui/ (4 files + directories)
+- src/
+  - components/
+  - hooks/
+  - styles/
+- package.json
+
+### api/ (3 files + directories)
+- src/
+  - client/
+  - types/
+- package.json
+
+## tools/ (3 directories)
+- generators/
+- scripts/
+- testing/
+
+## infrastructure/ (3 main directories)
+### kubernetes/ (2 directories)
+- production/
+- staging/
+
+### terraform/ (2 directories)
+- modules/
+- environments/
+
+### monitoring/ (2 directories)
+- grafana/
+- prometheus/
+
+## database/ (3 directories)
+- migrations/
+- seeds/
+- schemas/
+
+## config/ (3 directories)
+- nginx/
+- redis/
+- postgres/
+
+# Total Count Summary:
+1. Root Files: 8
+2. Main Directories: 7 (apps, libs, tools, infrastructure, database, config)
+3. Subdirectories: 54
+4. Configuration Files: 12 (including package.json files)
+5. Source Directories: 35
+6. Asset Directories: 5
+
+Total Folders: 61
+Total Files (minimum): 20 (not counting generated files)
+
+Key Directory Categories:
+1. Application Code: 25 directories
+2. Infrastructure: 9 directories
+3. Configuration: 8 directories
+4. Development Tools: 6 directories
+5. Shared Libraries: 7 directories
+6. Documentation: 3 directories
+7. Testing: 3 directories

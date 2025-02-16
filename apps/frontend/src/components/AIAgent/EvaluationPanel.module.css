@@ -1,0 +1,159 @@
+.container {
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.title {
+  margin: 0 0 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.overview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: var(--bg-input);
+  border-radius: 6px;
+}
+
+.averageScore {
+  text-align: center;
+}
+
+.scoreLabel {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.scoreValue {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.confidence {
+  flex: 1;
+  margin-left: 1.5rem;
+}
+
+.confidenceLabel {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.confidenceMeter {
+  height: 8px;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.confidenceValue {
+  height: 100%;
+  background-color: var(--success-color);
+  transition: width 0.3s ease-in-out;
+}
+
+.scores {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.scoreItem {
+  padding: 1rem;
+  background-color: var(--bg-input);
+  border-radius: 6px;
+}
+
+.scoreHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.criterion {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.score {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.scoreBar {
+  height: 6px;
+  background-color: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.scoreProgress {
+  height: 100%;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease-in-out;
+}
+
+.feedback {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.suggestions {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: var(--bg-input);
+  border-radius: 6px;
+}
+
+.suggestionsTitle {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.suggestionsList {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.suggestion {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.metadata {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .scoreItem,
+  .overview,
+  .suggestions {
+    background-color: var(--bg-secondary-dark);
+  }
+} 
