@@ -21,7 +21,9 @@
 
 
  
-comprehensive analysis of our Complete Enhanced Prompt Engineering Full-Stack AI Agent System.
+Complete Enhanced Prompt Engineering Full-Stack AI Agent System -  Comprehensive Analysis
+
+![System Overview](./images/EPE_AI_Agent.png)
 
 <a id="core-system-analysis"></a>
 Core System Analysis:
@@ -490,4 +492,4 @@ flowchart TD
 <a id="additional-resources"></a>
 ## Additional Resources
 
-![System Overview](./images/EPE_Ai_Agent.png)
+

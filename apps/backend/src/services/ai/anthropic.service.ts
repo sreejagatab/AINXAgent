@@ -1,59 +1,131 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { PromptParameters, PromptExecutionResult } from '@enhanced-ai-agent/shared';
-import { PerformanceMonitor } from '@enhanced-ai-agent/shared';
+import { Anthropic } from '@anthropic-ai/sdk';
+import { config } from '../../config';
+import { logger } from '../../utils/logger';
+import { ApiError } from '../../utils/errors';
+import type { 
+  AIModelConfig,
+  CompletionRequest,
+  AIResponse,
+  ChatMessage 
+} from '../../types/ai.types';
 
 export class AnthropicService {
-  private client: Anthropic;
-  private monitor: PerformanceMonitor;
+  private static instance: AnthropicService;
+  private anthropic: Anthropic;
+  private modelConfig: Record<string, AIModelConfig>;
 
-  constructor() {
-    this.client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+  private constructor() {
+    this.anthropic = new Anthropic({
+      apiKey: config.ai.anthropic.apiKey,
     });
-    this.monitor = PerformanceMonitor.getInstance('AnthropicService');
+    this.initializeModelConfigs();
   }
 
-  async execute(params: {
-    prompt: string;
-    parameters: PromptParameters;
-  }): Promise<Omit<PromptExecutionResult, 'promptId' | 'input'>> {
-    const startTime = Date.now();
+  public static getInstance(): AnthropicService {
+    if (!AnthropicService.instance) {
+      AnthropicService.instance = new AnthropicService();
+    }
+    return AnthropicService.instance;
+  }
 
-    try {
-      const completion = await this.client.messages.create({
+  private initializeModelConfigs() {
+    this.modelConfig = {
+      'claude-2': {
         model: 'claude-2',
-        max_tokens: params.parameters.maxTokens,
-        messages: [{ role: 'user', content: params.prompt }],
-        temperature: params.parameters.temperature,
-        top_p: params.parameters.topP,
+        temperature: 0.7,
+        maxTokens: 2000,
+        topP: 1,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+      },
+      'claude-instant': {
+        model: 'claude-instant',
+        temperature: 0.7,
+        maxTokens: 2000,
+        topP: 1,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+      },
+    };
+  }
+
+  private formatMessages(messages: ChatMessage[]): string {
+    return messages.map(msg => {
+      switch (msg.role) {
+        case 'system':
+          return `\n\nSystem: ${msg.content}`;
+        case 'assistant':
+          return `\n\nAssistant: ${msg.content}`;
+        case 'user':
+        default:
+          return `\n\nHuman: ${msg.content}`;
+      }
+    }).join('');
+  }
+
+  public async generateCompletion(
+    request: CompletionRequest
+  ): Promise<AIResponse<string>> {
+    try {
+      const modelConfig = this.modelConfig[request.model] || this.modelConfig['claude-2'];
+      const formattedPrompt = this.formatMessages(request.messages);
+
+      const completion = await this.anthropic.messages.create({
+        model: request.model,
+        messages: [{ role: 'user', content: formattedPrompt }],
+        max_tokens: request.maxTokens ?? modelConfig.maxTokens,
+        temperature: request.temperature ?? modelConfig.temperature,
       });
 
-      // Estimate token usage since Anthropic doesn't provide it directly
-      const promptTokens = Math.ceil(params.prompt.length / 4);
-      const completionTokens = Math.ceil((completion.content[0].text || '').length / 4);
-
-      const result = {
-        model: 'claude-2',
-        output: completion.content[0].text || '',
-        duration: Date.now() - startTime,
-        tokenUsage: {
-          prompt: promptTokens,
-          completion: completionTokens,
-          total: promptTokens + completionTokens,
-        },
-        success: true,
-        metadata: {
-          model: completion.model,
-          messageId: completion.id,
-          role: completion.role,
+      return {
+        data: completion.content[0].text,
+        usage: {
+          promptTokens: 0, // Anthropic doesn't provide token counts
+          completionTokens: 0,
+          totalTokens: 0,
         },
       };
-
-      this.monitor.recordMetric('anthropic_request_duration', result.duration);
-      return result;
-    } catch (error) {
-      this.monitor.recordError('anthropic_request', error as Error);
-      throw error;
+    } catch (error: any) {
+      logger.error('Anthropic completion error:', error);
+      throw new ApiError(
+        error.message || 'Anthropic service error',
+        error.status || 500
+      );
     }
   }
-} 
+
+  public async streamCompletion(
+    request: CompletionRequest,
+    onData: (data: string) => void,
+    onComplete: () => void
+  ): Promise<void> {
+    try {
+      const modelConfig = this.modelConfig[request.model] || this.modelConfig['claude-2'];
+      const formattedPrompt = this.formatMessages(request.messages);
+
+      const stream = await this.anthropic.messages.create({
+        model: request.model,
+        messages: [{ role: 'user', content: formattedPrompt }],
+        max_tokens: request.maxTokens ?? modelConfig.maxTokens,
+        temperature: request.temperature ?? modelConfig.temperature,
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        if (chunk.content[0].text) {
+          onData(chunk.content[0].text);
+        }
+      }
+
+      onComplete();
+    } catch (error: any) {
+      logger.error('Anthropic streaming error:', error);
+      throw new ApiError(
+        error.message || 'Anthropic streaming error',
+        error.status || 500
+      );
+    }
+  }
+}
+
+export const anthropicService = AnthropicService.getInstance(); 
