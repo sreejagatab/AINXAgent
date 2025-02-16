@@ -25,7 +25,9 @@
       "@/*": ["src/*"],
       "@shared/*": ["libs/shared/src/*"]
     },
-    "types": ["node", "jest"]
+    "typeRoots": [
+      "./node_modules/@types"
+    ]
   },
   "exclude": ["node_modules", "dist"],
   "ts-node": {
