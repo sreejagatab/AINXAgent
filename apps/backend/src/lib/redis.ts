@@ -1,108 +1,116 @@
 import { createClient } from 'redis';
-import Redis from 'ioredis';
-import { config } from '../config';
 import { logger } from '../utils/logger';
+import { config } from '../config';
 
-class RedisService {
-  private static instance: RedisService;
-  private _redis: Redis;
+class RedisClient {
+  private static instance: RedisClient;
+  private client: ReturnType<typeof createClient>;
 
   private constructor() {
-    this._redis = new Redis({
-      host: config.REDIS_HOST,
-      port: config.REDIS_PORT,
-      password: config.REDIS_PASSWORD,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
+    this.client = createClient({
+      url: config.redis.url,
+      socket: {
+        reconnectStrategy: (retries) => {
+          if (retries > 10) {
+            logger.error('Redis max retries reached. Giving up...');
+            return new Error('Redis max retries reached');
+          }
+          return Math.min(retries * 100, 3000);
+        },
       },
-      maxRetriesPerRequest: 3,
     });
 
     this.setupEventHandlers();
   }
 
-  public static getInstance(): RedisService {
-    if (!RedisService.instance) {
-      RedisService.instance = new RedisService();
-    }
-    return RedisService.instance;
-  }
-
   private setupEventHandlers() {
-    this._redis.on('connect', () => {
-      logger.info('Connected to Redis');
+    this.client.on('error', (err) => {
+      logger.error('Redis Client Error:', err);
     });
 
-    this._redis.on('error', (error) => {
-      logger.error('Redis error:', error);
+    this.client.on('connect', () => {
+      logger.info('Redis Client Connected');
     });
 
-    this._redis.on('close', () => {
-      logger.warn('Redis connection closed');
-    });
-
-    this._redis.on('reconnecting', () => {
-      logger.info('Reconnecting to Redis');
+    this.client.on('reconnecting', () => {
+      logger.info('Redis Client Reconnecting');
     });
   }
 
-  public get redis(): Redis {
-    return this._redis;
-  }
-
-  public async healthCheck(): Promise<boolean> {
-    try {
-      const result = await this._redis.ping();
-      return result === 'PONG';
-    } catch (error) {
-      logger.error('Redis health check failed:', error);
-      return false;
+  public static getInstance(): RedisClient {
+    if (!RedisClient.instance) {
+      RedisClient.instance = new RedisClient();
     }
+    return RedisClient.instance;
+  }
+
+  public async connect(): Promise<void> {
+    await this.client.connect();
+  }
+
+  public async disconnect(): Promise<void> {
+    await this.client.disconnect();
   }
 
   public async set(
     key: string,
     value: string,
-    mode: string = 'EX',
-    duration: number = 3600
-  ): Promise<'OK' | null> {
+    options?: { ttl?: number }
+  ): Promise<void> {
     try {
-      return await this._redis.set(key, value, mode, duration);
+      if (options?.ttl) {
+        await this.client.set(key, value, { EX: options.ttl });
+      } else {
+        await this.client.set(key, value);
+      }
     } catch (error) {
-      logger.error('Redis set failed:', error);
+      logger.error('Redis set error:', error);
       throw error;
     }
   }
 
   public async get(key: string): Promise<string | null> {
     try {
-      return await this._redis.get(key);
+      return await this.client.get(key);
     } catch (error) {
-      logger.error('Redis get failed:', error);
+      logger.error('Redis get error:', error);
       throw error;
     }
   }
 
-  public async del(key: string | string[]): Promise<number> {
+  public async del(key: string): Promise<void> {
     try {
-      return await this._redis.del(Array.isArray(key) ? key : [key]);
+      await this.client.del(key);
     } catch (error) {
-      logger.error('Redis del failed:', error);
+      logger.error('Redis del error:', error);
       throw error;
     }
   }
 
-  public async quit(): Promise<void> {
+  public async setHash(
+    key: string,
+    field: string,
+    value: string
+  ): Promise<void> {
     try {
-      await this._redis.quit();
-      logger.info('Redis connection closed');
+      await this.client.hSet(key, field, value);
     } catch (error) {
-      logger.error('Redis quit failed:', error);
+      logger.error('Redis setHash error:', error);
+      throw error;
+    }
+  }
+
+  public async getHash(
+    key: string,
+    field: string
+  ): Promise<string | null> {
+    try {
+      return await this.client.hGet(key, field);
+    } catch (error) {
+      logger.error('Redis getHash error:', error);
       throw error;
     }
   }
 }
 
-export const redisService = RedisService.getInstance();
-export const redis = redisService.redis; 
+export const redis = RedisClient.getInstance(); 

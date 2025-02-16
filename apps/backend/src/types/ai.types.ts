@@ -46,9 +46,9 @@ export interface AIError {
 
 export type AIModel = 
   | 'gpt-4'
-  | 'gpt-4-32k'
   | 'gpt-3.5-turbo'
-  | 'gpt-3.5-turbo-16k';
+  | 'claude-2'
+  | 'claude-instant';
 
 export type MessageRole = 
   | 'system'
@@ -132,4 +132,58 @@ export interface ModelCapabilities {
   supportsFunctions: boolean;
   supportsVision: boolean;
   costPerToken: number;
+}
+
+export type PromptVariable = {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  required: boolean;
+  description?: string;
+  default?: any;
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+    enum?: any[];
+  };
+};
+
+export type PromptTemplate = {
+  name: string;
+  description?: string;
+  template: string;
+  variables: PromptVariable[];
+  category?: string;
+  version: number;
+  metadata?: Record<string, any>;
+};
+
+export type AIEvaluation = {
+  scores: {
+    accuracy: number;
+    relevance: number;
+    coherence: number;
+    creativity: number;
+    [key: string]: number;
+  };
+  feedback: string[];
+  suggestions: string[];
+  metadata?: Record<string, any>;
+};
+
+export interface AIService {
+  generateResponse(
+    prompt: string,
+    options?: {
+      model?: AIModel;
+      maxTokens?: number;
+      temperature?: number;
+      cacheKey?: string;
+    }
+  ): Promise<AIResponse>;
+  
+  optimizePrompt(
+    template: PromptTemplate,
+    variables: Record<string, any>
+  ): Promise<string>;
 } 

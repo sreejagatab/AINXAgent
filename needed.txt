@@ -6,182 +6,211 @@
 - controllers/
   - ai.controller.ts
   - auth.controller.ts
-  - document.controller.ts
-  - search.controller.ts
-  - monitoring.controller.ts
-  - queue.controller.ts
-  - websocket.controller.ts
-  - notification.controller.ts
+  - prompt.controller.ts
+  - tool.controller.ts
+  - evaluation.controller.ts
+  - user.controller.ts
   - analytics.controller.ts
+  - monitoring.controller.ts
+  - websocket.controller.ts
 
 ### Service Layer
 - services/
-  - ai.service.ts
+  - ai/
+    - openai.service.ts
+    - anthropic.service.ts
+    - gemini.service.ts
+    - huggingface.service.ts
+  - prompt/
+    - prompt.service.ts
+    - prompt-template.service.ts
+    - prompt-evaluation.service.ts
+    - prompt-metrics.service.ts
+  - tool/
+    - tool.service.ts
+    - tool-execution.service.ts
+    - tool-validation.service.ts
   - auth.service.ts
-  - document.service.ts
-  - search.service.ts
+  - user.service.ts
+  - analytics.service.ts
   - monitoring.service.ts
+  - cache.service.ts
   - queue.service.ts
   - websocket.service.ts
-  - notification.service.ts
-  - analytics.service.ts
-  - email.service.ts
-  - cache.service.ts
 
 ### Database Layer
 - prisma/
   - schema.prisma
   - migrations/
-    - initial_migration.sql
   - seed.ts
 - lib/
   - prisma.ts
   - redis.ts
+  - vectordb.ts
 
 ### Middleware
 - middleware/
   - auth.ts
+  - error.ts
   - validation.ts
   - rate-limit.ts
-  - error-handler.ts
   - logging.ts
-  - cache.ts
   - monitoring.ts
+  - cache.ts
   - cors.ts
-  - compression.ts
+
+### Types & Interfaces
+- types/
+  - ai.types.ts
+  - prompt.types.ts
+  - tool.types.ts
+  - auth.types.ts
+  - user.types.ts
+  - analytics.types.ts
+  - websocket.types.ts
 
 ### Utils
 - utils/
-  - logger.ts
   - errors.ts
+  - logger.ts
   - validation.ts
   - security.ts
-  - ai-helpers.ts
-  - analytics.ts
   - metrics.ts
-  - template.ts
+  - performance.ts
 
-### Types
-- types/
-  - ai.types.ts
-  - auth.types.ts
-  - document.types.ts
-  - search.types.ts
-  - monitoring.types.ts
-  - queue.types.ts
-  - websocket.types.ts
-  - notification.types.ts
-  - analytics.types.ts
-  - common.types.ts
-
-### Tests
-- __tests__/
-  - integration/
-    - ai.test.ts
-    - auth.test.ts
-    - document.test.ts
-    - search.test.ts
-  - unit/
-    - services/
-    - controllers/
-    - utils/
-  - setup.ts
-  - mocks.ts
-
-### Configuration
+### Config
 - config/
   - index.ts
-  - database.ts
-  - redis.ts
-  - ai.ts
-  - email.ts
-  - security.ts
+  - ai.config.ts
+  - auth.config.ts
+  - database.config.ts
+  - cache.config.ts
+  - queue.config.ts
 
 ## Frontend Core (apps/frontend/src)
 
 ### Components
 - components/
-  - ai/
-    - Chat.tsx
-    - Suggestions.tsx
-    - DocumentAnalysis.tsx
-  - auth/
-    - Login.tsx
-    - Register.tsx
-    - Profile.tsx
-  - documents/
-    - DocumentList.tsx
-    - DocumentEditor.tsx
-    - DocumentViewer.tsx
-  - search/
-    - SearchBar.tsx
-    - SearchResults.tsx
-    - Filters.tsx
+  - prompt/
+    - PromptEditor.tsx
+    - PromptTester.tsx
+    - PromptList.tsx
+    - PromptMetrics.tsx
+  - tool/
+    - ToolBuilder.tsx
+    - ToolExecutor.tsx
+    - ToolList.tsx
+  - evaluation/
+    - EvaluationMetrics.tsx
+    - EvaluationReport.tsx
   - common/
     - Layout.tsx
-    - Navigation.tsx
-    - Loading.tsx
-    - Error.tsx
+    - Navbar.tsx
+    - Sidebar.tsx
+    - ErrorBoundary.tsx
+    - LoadingSpinner.tsx
+  - auth/
+    - LoginForm.tsx
+    - SignupForm.tsx
+    - ProfileSettings.tsx
+
+### Pages
+- pages/
+  - prompts/
+    - index.tsx
+    - [id].tsx
+    - new.tsx
+    - edit/[id].tsx
+  - tools/
+    - index.tsx
+    - [id].tsx
+    - new.tsx
+  - evaluations/
+    - index.tsx
+    - [id].tsx
+  - analytics/
+    - index.tsx
+    - usage.tsx
+    - performance.tsx
+  - settings/
+    - index.tsx
+    - profile.tsx
+    - api-keys.tsx
+  - auth/
+    - login.tsx
+    - signup.tsx
+    - forgot-password.tsx
 
 ### State Management
 - store/
-  - slices/
-    - aiSlice.ts
-    - authSlice.ts
-    - documentSlice.ts
-    - searchSlice.ts
-  - api/
-    - aiApi.ts
-    - authApi.ts
-    - documentApi.ts
-    - searchApi.ts
-  - hooks/
-    - useAi.ts
-    - useAuth.ts
-    - useDocument.ts
-    - useSearch.ts
-
-### Styles
-- styles/
-  - theme.ts
-  - global.css
-  - components/
-  - animations/
-
-### Utils
-- utils/
-  - api.ts
-  - validation.ts
-  - formatting.ts
-  - storage.ts
-
-## Shared (libs/shared)
-- types/
-  - common.types.ts
-  - api.types.ts
-- utils/
-  - validation.ts
-  - formatting.ts
-- constants/
   - index.ts
+  - slices/
+    - promptSlice.ts
+    - toolSlice.ts
+    - authSlice.ts
+    - uiSlice.ts
+  - thunks/
+    - promptThunks.ts
+    - toolThunks.ts
+    - authThunks.ts
 
-## DevOps
+### Services
+- services/
+  - api.service.ts
+  - auth.service.ts
+  - prompt.service.ts
+  - tool.service.ts
+  - analytics.service.ts
+  - websocket.service.ts
+
+### Hooks
+- hooks/
+  - usePrompt.ts
+  - useTool.ts
+  - useAuth.ts
+  - useWebSocket.ts
+  - useAnalytics.ts
+  - useMonitoring.ts
+
+## Testing
+- backend/
+  - jest.config.ts
+  - tests/
+    - unit/
+    - integration/
+    - e2e/
+- frontend/
+  - jest.config.ts
+  - cypress/
+  - playwright/
+  - tests/
+    - unit/
+    - integration/
+    - e2e/
+
+## Infrastructure
 - docker/
-  - Dockerfile.backend
-  - Dockerfile.frontend
-  - docker-compose.yml
+  - backend.Dockerfile
+  - frontend.Dockerfile
+  - nginx.conf
 - kubernetes/
   - deployments/
   - services/
   - ingress/
   - configmaps/
-- ci/
-  - github-actions/
-  - gitlab-ci/
-- scripts/
-  - deploy.sh
-  - backup.sh
-  - monitoring.sh
+  - secrets/
+- terraform/
+  - main.tf
+  - variables.tf
+  - outputs.tf
+  - modules/
+
+## CI/CD
+- .github/workflows/
+  - backend-ci.yml
+  - frontend-ci.yml
+  - deploy-staging.yml
+  - deploy-production.yml
 
 ## Documentation
 - docs/
@@ -189,288 +218,14 @@
   - architecture/
   - deployment/
   - development/
-  - testing/
   - monitoring/
   - security/
+  - testing/
 
-## Configuration Files
+## Root Configuration
 - package.json
 - tsconfig.json
 - .env.example
 - .gitignore
-- .dockerignore
-- .eslintrc
-- .prettierrc
-- jest.config.ts
-- nginx.conf
-- pm2.config.js
-
-## Monitoring & Analytics
-- monitoring/
-  - prometheus/
-  - grafana/
-  - elasticsearch/
-  - kibana/
-- analytics/
-  - trackers/
-  - processors/
-  - dashboards/
-
-## Security
-- security/
-  - policies/
-  - certificates/
-  - encryption/
-  - authentication/
-  - authorization/
-
-## AI Integration
-- ai/
-  - models/
-  - prompts/
-  - embeddings/
-  - vectorstore/
-  - training/
-  - evaluation/
-
-## Queue System
-- queues/
-  - workers/
-  - processors/
-  - schedulers/
-  - monitoring/
-
-## Real-time Features
-- websocket/
-  - handlers/
-  - rooms/
-  - events/
-  - monitoring/
-
-## Email System
-- email/
-  - templates/
-  - processors/
-  - tracking/
-
-## Database
-- database/
-  - migrations/
-  - seeds/
-  - backups/
-  - monitoring/
-
-## Cache
-- cache/
-  - policies/
-  - invalidation/
-  - monitoring/
-
-## Testing
-- testing/
-  - e2e/
-  - integration/
-  - unit/
-  - performance/
-  - security/
-
-## Deployment
-- deployment/
-  - staging/
-  - production/
-  - scaling/
-  - backup/
-
-
-# Core Frontend Files (apps/frontend/src)
-
-## Components
-- components/Layout/MainLayout.tsx
-- components/Layout/DashboardLayout.tsx
-- components/Prompt/PromptEditor.tsx
-- components/Prompt/PromptTester.tsx
-- components/Prompt/PromptVersioning.tsx
-- components/Tools/ToolExecutor.tsx
-- components/Tools/ToolBuilder.tsx
-- components/Evaluation/EvaluationMetrics.tsx
-- components/Auth/LoginForm.tsx
-- components/Auth/SignupForm.tsx
-- components/Common/LoadingSpinner.tsx
-- components/Common/ErrorBoundary.tsx
-- components/Common/Toast.tsx
-
-## Pages
-- pages/index.tsx
-- pages/dashboard.tsx
-- pages/prompts/index.tsx
-- pages/prompts/[id].tsx
-- pages/prompts/new.tsx
-- pages/tools/index.tsx
-- pages/tools/[id].tsx
-- pages/evaluations/index.tsx
-- pages/auth/login.tsx
-- pages/auth/signup.tsx
-
-## Services
-- services/api.service.ts
-- services/auth.service.ts
-- services/prompt.service.ts
-- services/tool.service.ts
-- services/evaluation.service.ts
-- services/analytics.service.ts
-- services/error.service.ts
-- services/monitoring.service.ts
-- services/security.service.ts
-- services/performance.service.ts
-
-## Hooks
-- hooks/useAuth.ts
-- hooks/usePrompt.ts
-- hooks/useTool.ts
-- hooks/useEvaluation.ts
-- hooks/useAnalytics.ts
-- hooks/useError.ts
-- hooks/useMonitoring.ts
-- hooks/useSecurity.ts
-- hooks/usePerformance.ts
-
-## Store
-- store/index.ts
-- store/rootReducer.ts
-- store/auth/authSlice.ts
-- store/prompts/promptsSlice.ts
-- store/tools/toolsSlice.ts
-- store/evaluations/evaluationsSlice.ts
-- store/ui/uiSlice.ts
-
-## Types
-- types/auth.types.ts
-- types/prompt.types.ts
-- types/tool.types.ts
-- types/evaluation.types.ts
-- types/analytics.types.ts
-- types/error.types.ts
-- types/monitoring.types.ts
-- types/security.types.ts
-- types/api.types.ts
-
-## Utils
-- utils/api.ts
-- utils/validation.ts
-- utils/formatting.ts
-- utils/testing.ts
-- utils/security.ts
-- utils/logger.ts
-
-## Config
-- config/index.ts
-- config/api.config.ts
-- config/auth.config.ts
-- config/analytics.config.ts
-- config/monitoring.config.ts
-- config/security.config.ts
-
-## Middleware
-- middleware/auth.middleware.ts
-- middleware/error.middleware.ts
-- middleware/analytics.middleware.ts
-- middleware/monitoring.middleware.ts
-- middleware/security.middleware.ts
-
-## Testing
-- test/setup.ts
-- test/mocks/handlers.ts
-- test/mocks/mockData.ts
-- test/utils/test-utils.ts
-- e2e/prompt-engineering.spec.ts
-- e2e/tool-execution.spec.ts
-- e2e/auth-flow.spec.ts
-
-## Deployment
-- Dockerfile
-- nginx.conf
-- .dockerignore
-- .env.example
-- .env.production
-
-# Core Backend Files (apps/backend/src)
-
-## Controllers
-- controllers/auth.controller.ts
-- controllers/prompt.controller.ts
-- controllers/tool.controller.ts
-- controllers/evaluation.controller.ts
-- controllers/analytics.controller.ts
-
-## Services
-- services/auth.service.ts
-- services/prompt.service.ts
-- services/tool.service.ts
-- services/evaluation.service.ts
-- services/analytics.service.ts
-- services/ai.service.ts
-
-## Models
-- models/User.ts
-- models/Prompt.ts
-- models/Tool.ts
-- models/Evaluation.ts
-- models/Analytics.ts
-
-## Middleware
-- middleware/auth.middleware.ts
-- middleware/error.middleware.ts
-- middleware/validation.middleware.ts
-- middleware/rate-limit.middleware.ts
-
-## Database
-- database/index.ts
-- database/migrations/
-- database/seeds/
-
-## AI Integration
-- ai/openai.ts
-- ai/anthropic.ts
-- ai/huggingface.ts
-- ai/prompt-templates.ts
-- ai/evaluation-metrics.ts
-
-## Utils
-- utils/validation.ts
-- utils/security.ts
-- utils/logger.ts
-- utils/metrics.ts
-
-## Config
-- config/index.ts
-- config/database.ts
-- config/ai.ts
-- config/security.ts
-
-## Testing
-- test/setup.ts
-- test/mocks/
-- test/integration/
-- test/unit/
-
-## Documentation
-- docs/api.md
-- docs/architecture.md
-- docs/deployment.md
-- docs/security.md
-- docs/monitoring.md
-
-# Infrastructure
 - docker-compose.yml
-- kubernetes/
-- terraform/
-- ci/.github/workflows/
-- monitoring/grafana/
-- monitoring/prometheus/
 
-# Root Configuration
-- package.json
-- tsconfig.json
-- jest.config.js
-- .eslintrc.js
-- .prettierrc

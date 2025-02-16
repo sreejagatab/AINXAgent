@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service';
 import { ApiError } from '../utils/errors';
+import { logger } from '../utils/logger';
 import type { TokenPayload } from '../types/auth.types';
 
 declare global {
@@ -11,39 +12,68 @@ declare global {
   }
 }
 
-export function authenticate(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return next(ApiError.unauthorized('No authorization header'));
-  }
-
-  const [type, token] = authHeader.split(' ');
-  if (type !== 'Bearer' || !token) {
-    return next(ApiError.unauthorized('Invalid authorization header'));
-  }
-
-  authService
-    .validateToken(token)
-    .then(payload => {
-      req.user = payload;
-      next();
-    })
-    .catch(next);
+export interface AuthRequest extends Request {
+  user?: any;
 }
 
-export function authorize(...roles: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(ApiError.unauthorized('User not authenticated'));
+export const authenticate = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      throw new ApiError('No authorization header', 401);
     }
 
-    if (roles.length && !roles.includes(req.user.role)) {
-      return next(ApiError.forbidden('Insufficient permissions'));
+    const [type, token] = authHeader.split(' ');
+
+    if (type === 'Bearer') {
+      req.user = await authService.validateToken(token);
+    } else if (type === 'ApiKey') {
+      req.user = await authService.validateApiKey(token);
+    } else {
+      throw new ApiError('Invalid authorization type', 401);
+    }
+
+    next();
+  } catch (error) {
+    logger.error('Authentication error:', error);
+    next(error);
+  }
+};
+
+export const authorize = (...roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      throw new ApiError('User not authenticated', 401);
+    }
+
+    if (!roles.includes(req.user.role)) {
+      throw new ApiError('Insufficient permissions', 403);
     }
 
     next();
   };
-}
+};
+
+export const rateLimiter = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!req.user) {
+    throw new ApiError('User not authenticated', 401);
+  }
+
+  if (req.user.usageCount >= req.user.usageLimit) {
+    throw new ApiError('Usage limit exceeded', 429);
+  }
+
+  next();
+};
 
 export function validateOwnership(
   getResourceUserId: (req: Request) => Promise<string | null>

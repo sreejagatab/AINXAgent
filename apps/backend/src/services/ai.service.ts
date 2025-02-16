@@ -1,4 +1,5 @@
-import { OpenAI } from 'openai';
+import { Configuration, OpenAIApi } from 'openai';
+import { Anthropic } from '@anthropic-ai/sdk';
 import { prisma } from '../lib/prisma';
 import { redis } from '../lib/redis';
 import { config } from '../config';
@@ -17,14 +18,21 @@ import type {
 
 export class AIService {
   private static instance: AIService;
-  private openai: OpenAI;
+  private openai: OpenAIApi;
+  private anthropic: Anthropic;
   private readonly CACHE_PREFIX = 'ai:';
   private readonly CACHE_TTL = 3600; // 1 hour
 
   private constructor() {
-    this.openai = new OpenAI({
-      apiKey: config.OPENAI_API_KEY,
-      organization: config.OPENAI_ORG_ID,
+    // Initialize OpenAI
+    const openaiConfig = new Configuration({
+      apiKey: config.ai.openai.apiKey,
+    });
+    this.openai = new OpenAIApi(openaiConfig);
+
+    // Initialize Anthropic
+    this.anthropic = new Anthropic({
+      apiKey: config.ai.anthropic.apiKey,
     });
   }
 
@@ -35,43 +43,151 @@ export class AIService {
     return AIService.instance;
   }
 
-  public async generateCompletion(
+  public async generateResponse(
     prompt: string,
-    model: AIModel = 'gpt-4',
-    options: any = {}
-  ): Promise<CompletionResponse> {
-    try {
-      const cacheKey = `${this.CACHE_PREFIX}completion:${prompt}`;
-      const cached = await redis.get(cacheKey);
+    options: {
+      model?: AIModel;
+      maxTokens?: number;
+      temperature?: number;
+      cacheKey?: string;
+    } = {}
+  ): Promise<AIResponse> {
+    const {
+      model = 'gpt-4',
+      maxTokens = config.ai.openai.maxTokens,
+      temperature = 0.7,
+      cacheKey,
+    } = options;
 
-      if (cached) {
-        return JSON.parse(cached);
+    // Check cache if cacheKey provided
+    if (cacheKey) {
+      const cached = await this.getCachedResponse(cacheKey);
+      if (cached) return cached;
+    }
+
+    try {
+      let response: AIResponse;
+
+      if (model.startsWith('gpt')) {
+        response = await this.generateOpenAIResponse(prompt, {
+          model,
+          maxTokens,
+          temperature,
+        });
+      } else if (model.startsWith('claude')) {
+        response = await this.generateAnthropicResponse(prompt, {
+          model,
+          maxTokens,
+          temperature,
+        });
+      } else {
+        throw new ApiError(`Unsupported AI model: ${model}`, 400);
       }
 
-      const completion = await this.openai.chat.completions.create({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.maxTokens ?? 1000,
-        top_p: options.topP ?? 1,
-        frequency_penalty: options.frequencyPenalty ?? 0,
-        presence_penalty: options.presencePenalty ?? 0,
-      });
-
-      const response = {
-        text: completion.choices[0].message.content,
-        usage: completion.usage,
-        model: completion.model,
-      };
-
-      await redis.set(cacheKey, JSON.stringify(response), 'EX', this.CACHE_TTL);
-      await this.trackCompletion(prompt, response);
+      // Cache response if cacheKey provided
+      if (cacheKey) {
+        await this.cacheResponse(cacheKey, response);
+      }
 
       return response;
     } catch (error) {
-      logger.error('AI completion failed:', error);
-      throw error;
+      logger.error('AI generation error:', error);
+      throw new ApiError('Failed to generate AI response', 500);
     }
+  }
+
+  private async generateOpenAIResponse(
+    prompt: string,
+    options: {
+      model: string;
+      maxTokens: number;
+      temperature: number;
+    }
+  ): Promise<AIResponse> {
+    const { model, maxTokens, temperature } = options;
+
+    const completion = await this.openai.createChatCompletion({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: maxTokens,
+      temperature,
+    });
+
+    return {
+      text: completion.data.choices[0].message?.content || '',
+      model,
+      usage: completion.data.usage,
+      metadata: {
+        finishReason: completion.data.choices[0].finish_reason,
+        created: completion.data.created,
+      },
+    };
+  }
+
+  private async generateAnthropicResponse(
+    prompt: string,
+    options: {
+      model: string;
+      maxTokens: number;
+      temperature: number;
+    }
+  ): Promise<AIResponse> {
+    const { model, maxTokens, temperature } = options;
+
+    const completion = await this.anthropic.messages.create({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: maxTokens,
+      temperature,
+    });
+
+    return {
+      text: completion.content[0].text,
+      model,
+      usage: {
+        prompt_tokens: completion.usage.input_tokens,
+        completion_tokens: completion.usage.output_tokens,
+        total_tokens: completion.usage.input_tokens + completion.usage.output_tokens,
+      },
+      metadata: {
+        finishReason: completion.stop_reason,
+        created: new Date().toISOString(),
+      },
+    };
+  }
+
+  private async getCachedResponse(key: string): Promise<AIResponse | null> {
+    const cached = await redis.get(`ai:response:${key}`);
+    return cached ? JSON.parse(cached) : null;
+  }
+
+  private async cacheResponse(key: string, response: AIResponse): Promise<void> {
+    await redis.set(
+      `ai:response:${key}`,
+      JSON.stringify(response),
+      { ttl: 3600 } // 1 hour cache
+    );
+  }
+
+  public async optimizePrompt(
+    template: PromptTemplate,
+    variables: Record<string, any>
+  ): Promise<string> {
+    // Validate required variables
+    for (const variable of template.variables) {
+      if (variable.required && !(variable.name in variables)) {
+        throw new ApiError(`Missing required variable: ${variable.name}`, 400);
+      }
+    }
+
+    let prompt = template.template;
+
+    // Replace variables
+    for (const [key, value] of Object.entries(variables)) {
+      prompt = prompt.replace(new RegExp(`{{${key}}}`, 'g'), value);
+    }
+
+    return prompt;
   }
 
   public async generateEmbeddings(
@@ -143,7 +259,7 @@ export class AIService {
         },
       ];
 
-      return await this.generateCompletion(messages.map(m => m.content).join('\n'), 'gpt-4', {
+      return await this.generateResponse(messages.map(m => m.content).join('\n'), {
         temperature: 0.7,
         maxTokens: 500,
         userId,
@@ -170,7 +286,7 @@ export class AIService {
         },
       ];
 
-      return await this.generateCompletion(messages.map(m => m.content).join('\n'), 'gpt-4', {
+      return await this.generateResponse(messages.map(m => m.content).join('\n'), {
         temperature: 0.3,
         maxTokens: 200,
         userId,

@@ -1,46 +1,81 @@
 export class ApiError extends Error {
   public readonly statusCode: number;
-  public readonly code: string;
   public readonly details?: Record<string, any>;
 
   constructor(
-    statusCode: number,
     message: string,
-    code = 'INTERNAL_ERROR',
+    statusCode: number,
     details?: Record<string, any>
   ) {
     super(message);
+    this.name = 'ApiError';
     this.statusCode = statusCode;
-    this.code = code;
     this.details = details;
     Error.captureStackTrace(this, this.constructor);
   }
 
-  static badRequest(message: string, code = 'BAD_REQUEST', details?: Record<string, any>) {
-    return new ApiError(400, message, code, details);
+  public static badRequest(
+    message: string,
+    details?: Record<string, any>
+  ): ApiError {
+    return new ApiError(message, 400, details);
   }
 
-  static unauthorized(message = 'Unauthorized', code = 'UNAUTHORIZED', details?: Record<string, any>) {
-    return new ApiError(401, message, code, details);
+  public static unauthorized(
+    message: string = 'Unauthorized',
+    details?: Record<string, any>
+  ): ApiError {
+    return new ApiError(message, 401, details);
   }
 
-  static forbidden(message = 'Forbidden', code = 'FORBIDDEN', details?: Record<string, any>) {
-    return new ApiError(403, message, code, details);
+  public static forbidden(
+    message: string = 'Forbidden',
+    details?: Record<string, any>
+  ): ApiError {
+    return new ApiError(message, 403, details);
   }
 
-  static notFound(message = 'Not Found', code = 'NOT_FOUND', details?: Record<string, any>) {
-    return new ApiError(404, message, code, details);
+  public static notFound(
+    message: string = 'Not found',
+    details?: Record<string, any>
+  ): ApiError {
+    return new ApiError(message, 404, details);
   }
 
-  static conflict(message: string, code = 'CONFLICT', details?: Record<string, any>) {
-    return new ApiError(409, message, code, details);
+  public static tooManyRequests(
+    message: string = 'Too many requests',
+    details?: Record<string, any>
+  ): ApiError {
+    return new ApiError(message, 429, details);
   }
 
-  static tooMany(message = 'Too Many Requests', code = 'TOO_MANY_REQUESTS', details?: Record<string, any>) {
-    return new ApiError(429, message, code, details);
+  public static internal(
+    message: string = 'Internal server error',
+    details?: Record<string, any>
+  ): ApiError {
+    return new ApiError(message, 500, details);
   }
 
-  static internal(message = 'Internal Server Error', code = 'INTERNAL_ERROR', details?: Record<string, any>) {
-    return new ApiError(500, message, code, details);
+  public toJSON(): Record<string, any> {
+    return {
+      error: {
+        name: this.name,
+        message: this.message,
+        statusCode: this.statusCode,
+        details: this.details,
+      },
+    };
   }
-} 
+}
+
+export const isApiError = (error: any): error is ApiError => {
+  return error instanceof ApiError;
+};
+
+export const handleError = (error: Error): ApiError => {
+  if (isApiError(error)) {
+    return error;
+  }
+
+  return ApiError.internal(error.message);
+}; 

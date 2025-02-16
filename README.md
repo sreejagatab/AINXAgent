@@ -1,4 +1,4 @@
-# AINXAgent
+# AINXAgent -  A Complete Enhanced Prompt Engineering Full-Stack AI Agent System
 
 [➤ Core System Analysis](#core-system-analysis) | 
 [➤ Core Capabilities](#core-capabilities) | 
@@ -490,4 +490,4 @@ flowchart TD
 <a id="additional-resources"></a>
 ## Additional Resources
 
-![System Overview](./images/visual_overview.png)
+![System Overview](./images/EPE_Ai_Agent.webp)
