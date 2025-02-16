@@ -1,32 +1,36 @@
-import React, { PropsWithChildren } from 'react';
+import React from 'react';
 import { render as rtlRender } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
-import { NotificationProvider } from '../contexts/NotificationContext';
+import { ThemeProvider } from '../contexts/ThemeContext';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import rootReducer from '../store/rootReducer';
-import { theme } from '../theme';
+import type { RootState } from '../store/types';
 
-function render(
+interface WrapperProps {
+  children: React.ReactNode;
+  initialState?: Partial<RootState>;
+}
+
+export function renderWithProviders(
   ui: React.ReactElement,
   {
-    preloadedState = {},
+    initialState = {},
     store = configureStore({
       reducer: rootReducer,
-      preloadedState,
+      preloadedState: initialState,
     }),
     ...renderOptions
   } = {}
 ) {
-  function Wrapper({ children }: PropsWithChildren<{}>): JSX.Element {
+  function Wrapper({ children }: WrapperProps) {
     return (
       <Provider store={store}>
-        <BrowserRouter>
-          <ThemeProvider theme={theme}>
-            <NotificationProvider>{children}</NotificationProvider>
-          </ThemeProvider>
-        </BrowserRouter>
+        <ThemeProvider>
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+        </ThemeProvider>
       </Provider>
     );
   }
@@ -37,8 +41,19 @@ function render(
   };
 }
 
-// Re-export everything
 export * from '@testing-library/react';
+export { renderWithProviders as render };
 
-// Override render method
-export { render }; 
+// Custom test matchers
+expect.extend({
+  toHaveErrorMessage(received: HTMLElement, expectedMessage: string) {
+    const errorMessage = received.getAttribute('aria-errormessage');
+    const pass = errorMessage === expectedMessage;
+
+    return {
+      pass,
+      message: () =>
+        `Expected element to ${pass ? 'not ' : ''}have error message: ${expectedMessage}`,
+    };
+  },
+}); 

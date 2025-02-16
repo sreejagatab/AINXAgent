@@ -1,12 +1,23 @@
 import '@testing-library/jest-dom';
-import 'whatwg-fetch';
+import { configure } from '@testing-library/react';
 import { TextEncoder, TextDecoder } from 'util';
+import { server } from './mocks/server';
+
+// Setup MSW
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+// Setup Testing Library
+configure({
+  testIdAttribute: 'data-testid',
+});
 
 // Mock IntersectionObserver
 class MockIntersectionObserver {
   observe = jest.fn();
-  unobserve = jest.fn();
   disconnect = jest.fn();
+  unobserve = jest.fn();
 }
 
 Object.defineProperty(window, 'IntersectionObserver', {
@@ -18,8 +29,8 @@ Object.defineProperty(window, 'IntersectionObserver', {
 // Mock ResizeObserver
 class MockResizeObserver {
   observe = jest.fn();
-  unobserve = jest.fn();
   disconnect = jest.fn();
+  unobserve = jest.fn();
 }
 
 Object.defineProperty(window, 'ResizeObserver', {
@@ -45,18 +56,37 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock TextEncoder/TextDecoder
 global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+global.TextDecoder = TextDecoder as any;
 
-// Mock console methods
-const originalConsole = { ...console };
+// Suppress console errors/warnings in tests
+const originalError = console.error;
+const originalWarn = console.warn;
+
 beforeAll(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {});
-  jest.spyOn(console, 'warn').mockImplementation(() => {});
-  jest.spyOn(console, 'log').mockImplementation(() => {});
+  console.error = (...args: any[]) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('Warning: ReactDOM.render is no longer supported')
+    ) {
+      return;
+    }
+    originalError.call(console, ...args);
+  };
+
+  console.warn = (...args: any[]) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('componentWillReceiveProps')
+    ) {
+      return;
+    }
+    originalWarn.call(console, ...args);
+  };
 });
 
 afterAll(() => {
-  Object.assign(console, originalConsole);
+  console.error = originalError;
+  console.warn = originalWarn;
 });
 
 // Global test timeout

@@ -1,3 +1,6 @@
+import { Analytics, getAnalytics, logEvent } from 'firebase/analytics';
+import { initializeApp } from 'firebase/app';
+import { config } from '../config';
 import { analytics as baseAnalytics } from '../utils/analytics';
 import { getEnvironment } from '../config/environment';
 import { logger } from '../utils/logger';
@@ -14,13 +17,17 @@ interface UserProperties {
   [key: string]: any;
 }
 
-class AnalyticsService {
+export class AnalyticsService {
   private static instance: AnalyticsService;
+  private analytics: Analytics;
   private initialized: boolean = false;
   private queue: Array<() => void> = [];
   private currentUser: UserProperties | null = null;
 
-  private constructor() {}
+  private constructor() {
+    const app = initializeApp(config.firebase);
+    this.analytics = getAnalytics(app);
+  }
 
   public static getInstance(): AnalyticsService {
     if (!AnalyticsService.instance) {
@@ -76,30 +83,61 @@ class AnalyticsService {
     });
   }
 
-  public trackEvent(
-    eventName: string,
-    properties?: EventProperties,
-    category?: string
-  ): void {
-    this.enqueue(() => {
-      const enrichedProperties = {
-        ...properties,
+  public trackEvent(eventName: string, params?: Record<string, any>) {
+    try {
+      logEvent(this.analytics, eventName, {
         timestamp: new Date().toISOString(),
-        environment: getEnvironment().NODE_ENV,
-        userId: this.currentUser?.id,
-        userRole: this.currentUser?.role,
-      };
-
-      baseAnalytics.event(
-        category || 'general',
-        eventName,
-        JSON.stringify(enrichedProperties)
-      );
-
-      logger.debug('Analytics event tracked', {
-        eventName,
-        properties: enrichedProperties,
+        ...params,
       });
+    } catch (error) {
+      console.error('Failed to track event:', error);
+    }
+  }
+
+  public trackPromptUsage(promptId: string, metadata: {
+    category: string;
+    model: string;
+    tokens: number;
+    duration: number;
+  }) {
+    this.trackEvent('prompt_used', {
+      prompt_id: promptId,
+      ...metadata,
+    });
+  }
+
+  public trackToolExecution(toolName: string, metadata: {
+    success: boolean;
+    duration: number;
+    error?: string;
+  }) {
+    this.trackEvent('tool_executed', {
+      tool_name: toolName,
+      ...metadata,
+    });
+  }
+
+  public trackEvaluation(evaluationId: string, metadata: {
+    averageScore: number;
+    criteria: string[];
+    duration: number;
+  }) {
+    this.trackEvent('evaluation_completed', {
+      evaluation_id: evaluationId,
+      ...metadata,
+    });
+  }
+
+  public trackError(error: Error, context: {
+    component: string;
+    action: string;
+    [key: string]: any;
+  }) {
+    this.trackEvent('error_occurred', {
+      error_name: error.name,
+      error_message: error.message,
+      error_stack: error.stack,
+      ...context,
     });
   }
 
@@ -109,17 +147,6 @@ class AnalyticsService {
       this.trackEvent('page_view', {
         path,
         title: title || document.title,
-      });
-    });
-  }
-
-  public trackError(error: Error, context?: Record<string, any>): void {
-    this.enqueue(() => {
-      baseAnalytics.exception(error.message, true);
-      this.trackEvent('error', {
-        errorMessage: error.message,
-        errorStack: error.stack,
-        ...context,
       });
     });
   }

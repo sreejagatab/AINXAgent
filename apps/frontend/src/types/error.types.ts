@@ -88,4 +88,40 @@ export interface ErrorRecoveryOptions {
   retryDelay?: number;
 }
 
-export type ErrorRecoveryHook<T> = ErrorRecoveryState<T> & ErrorRecoveryActions; 
+export type ErrorRecoveryHook<T> = ErrorRecoveryState<T> & ErrorRecoveryActions;
+
+export type ErrorSeverity = 'fatal' | 'error' | 'warning' | 'info';
+
+export type ErrorContext = {
+  component?: string;
+  action?: string;
+  userId?: string;
+  metadata?: ErrorMetadata;
+  severity?: ErrorSeverity;
+};
+
+export type ErrorMetadata = {
+  path?: string;
+  timestamp?: string;
+  requestId?: string;
+  sessionId?: string;
+  browser?: string;
+  os?: string;
+  [key: string]: any;
+};
+
+export type APIError = {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+  status?: number;
+  path?: string;
+  timestamp?: string;
+};
+
+export type ValidationError = {
+  field: string;
+  message: string;
+  code: string;
+  params?: Record<string, any>;
+}; 
