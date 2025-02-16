@@ -1,21 +1,35 @@
-MIT License
+Custom Development License
 
 Copyright (c) 2025 SreeGanesh Jagatab
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Definitions
+   a. "NDC" refers to the National Development Corporation, authorized to oversee development activities.
+   b. "Development" means any contribution, modification, or enhancement of the Software.
+   c. "Contributions" means any code, documentation, or other materials submitted for Development.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. Permitted Activities
+   a. Users may only engage in Development activities under this license.
+   b. All Development must be conducted in collaboration with and under the supervision of NDC.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. Restrictions
+   a. Users are expressly prohibited from:
+      i. Copying, using, or distributing the Software for any purpose
+      ii. Modifying the Software outside of approved Development activities
+      iii. Reverse engineering, decompiling, or disassembling the Software
+   b. Any unauthorized use of the Software will result in immediate termination of this license.
+
+4. NDC Terms
+   a. Prior to any Development, users must:
+      i. Execute a Development Agreement with NDC
+      ii. Agree to NDC's Intellectual Property Policy
+      iii. Complete NDC's Development Certification Program
+   b. All Contributions become the sole property of NDC.
+   c. Users must maintain strict confidentiality of all NDC proprietary information.
+
+5. Warranty and Liability
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+6. General Provisions
+   a. This license is governed by the laws of [Jurisdiction].
+   b. Any disputes shall be resolved through binding arbitration administered by NDC.
+   c. This license constitutes the entire agreement between the parties.

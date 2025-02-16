@@ -13,95 +13,74 @@ model User {
   password      String
   name          String?
   role          UserRole  @default(USER)
-  avatar        String?
-  preferences   Json?
-  verified      Boolean   @default(false)
-  documents     Document[]
-  apiKeys       ApiKey[]
-  sessions      Session[]
-  notifications Notification[]
+  apiKey        String?   @unique
+  usageLimit    Int       @default(1000)
+  usageCount    Int       @default(0)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  prompts       Prompt[]
+  tools         Tool[]
+  evaluations   Evaluation[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   @@index([email])
+  @@index([apiKey])
 }
 
-model Document {
-  id          String   @id @default(cuid())
-  title       String
-  content     String   @db.Text
-  published   Boolean  @default(false)
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
-  tags        String[]
-  version     Int      @default(1)
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([authorId])
-  @@index([published])
-}
-
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  token     String   @unique
-  device    Json?
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Prompt {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  template      String
+  variables     Json
+  category      String?
+  version       Int       @default(1)
+  isPublic      Boolean   @default(false)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  evaluations   Evaluation[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([userId])
-  @@index([token])
+  @@index([category])
 }
 
-model ApiKey {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  key         String   @unique
-  name        String
-  lastUsed    DateTime?
-  permissions String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId])
-  @@index([key])
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  type      String
-  data      Json
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Tool {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  type          String
+  parameters    Json
+  isPublic      Boolean   @default(false)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([userId])
   @@index([type])
 }
 
-model AnalyticsEvent {
-  id         String   @id @default(cuid())
-  type       String
-  userId     String?
-  sessionId  String?
-  properties Json
-  metadata   Json?
-  timestamp  DateTime @default(now())
+model Evaluation {
+  id            String    @id @default(cuid())
+  promptId      String
+  prompt        Prompt    @relation(fields: [promptId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  response      String
+  scores        Json
+  suggestions   String[]
+  metadata      Json?
+  createdAt     DateTime  @default(now())
 
-  @@index([type])
+  @@index([promptId])
   @@index([userId])
-  @@index([timestamp])
 }
 
 enum UserRole {
   ADMIN
   USER
-  EDITOR
+  API
 } 

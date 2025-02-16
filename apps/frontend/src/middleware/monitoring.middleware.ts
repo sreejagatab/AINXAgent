@@ -1,41 +1,91 @@
 import { Middleware } from '@reduxjs/toolkit';
 import { monitoringService } from '../services/monitoring.service';
-import { performanceMonitor } from '../utils/performance';
+import { RootState } from '../store';
+import { monitoringConfig } from '../config/monitoring.config';
 
-export const monitoringMiddleware: Middleware = () => (next) => (action) => {
-  // Start measuring action duration
-  const actionStartTime = performance.now();
-  performanceMonitor.mark(`action-start-${action.type}`);
+export const monitoringMiddleware: Middleware<{}, RootState> = 
+  store => next => action => {
+    const startTime = performance.now();
+    const prevState = store.getState();
+    
+    try {
+      const result = next(action);
+      const nextState = store.getState();
+      const duration = performance.now() - startTime;
 
-  // Add breadcrumb for action
-  monitoringService.addBreadcrumb(
-    `Redux Action: ${action.type}`,
-    'redux',
-    {
-      payload: action.payload,
-      timestamp: new Date().toISOString(),
-    }
-  );
-
-  // Execute action
-  const result = next(action);
-
-  // Measure action duration
-  performanceMonitor.mark(`action-end-${action.type}`);
-  const duration = performance.now() - actionStartTime;
-
-  // Log long-running actions
-  if (duration > 100) { // Actions taking longer than 100ms
-    monitoringService.addBreadcrumb(
-      'Long Running Action',
-      'performance',
-      {
-        actionType: action.type,
+      // Track action performance
+      monitoringService.trackPerformanceMetric({
+        name: `redux_action_${action.type}`,
+        entryType: 'measure',
+        startTime,
         duration,
-        timestamp: new Date().toISOString(),
-      }
-    );
+      } as PerformanceEntry);
+
+      // Track state changes
+      trackStateChanges(prevState, nextState, action.type);
+
+      return result;
+    } catch (error) {
+      monitoringService.trackError(error as Error, {
+        component: 'ReduxMiddleware',
+        action: action.type,
+        metadata: {
+          actionPayload: action.payload,
+          prevState,
+        },
+      });
+      throw error;
+    }
+  };
+
+function trackStateChanges(
+  prevState: RootState,
+  nextState: RootState,
+  actionType: string
+) {
+  // Track auth state changes
+  if (prevState.auth.user !== nextState.auth.user) {
+    monitoringService.trackPerformanceMetric({
+      name: 'auth_state_change',
+      entryType: 'measure',
+      startTime: performance.now(),
+      duration: 0,
+      metadata: {
+        action: actionType,
+        hasUser: !!nextState.auth.user,
+      },
+    } as PerformanceEntry);
   }
 
-  return result;
-}; 
+  // Track error state changes
+  if (prevState.error !== nextState.error) {
+    monitoringService.trackPerformanceMetric({
+      name: 'error_state_change',
+      entryType: 'measure',
+      startTime: performance.now(),
+      duration: 0,
+      metadata: {
+        action: actionType,
+        errorCount: Object.keys(nextState.error).length,
+      },
+    } as PerformanceEntry);
+  }
+
+  // Track performance critical state changes
+  if (
+    prevState.ui.loading !== nextState.ui.loading ||
+    prevState.ui.loadingCount !== nextState.ui.loadingCount
+  ) {
+    monitoringService.trackPerformanceMetric({
+      name: 'loading_state_change',
+      entryType: 'measure',
+      startTime: performance.now(),
+      duration: 0,
+      metadata: {
+        action: actionType,
+        isLoading: nextState.ui.loading,
+        loadingCount: nextState.ui.loadingCount,
+      },
+    } as PerformanceEntry);
+  }
+} 

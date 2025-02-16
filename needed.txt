@@ -280,3 +280,197 @@
   - production/
   - scaling/
   - backup/
+
+
+# Core Frontend Files (apps/frontend/src)
+
+## Components
+- components/Layout/MainLayout.tsx
+- components/Layout/DashboardLayout.tsx
+- components/Prompt/PromptEditor.tsx
+- components/Prompt/PromptTester.tsx
+- components/Prompt/PromptVersioning.tsx
+- components/Tools/ToolExecutor.tsx
+- components/Tools/ToolBuilder.tsx
+- components/Evaluation/EvaluationMetrics.tsx
+- components/Auth/LoginForm.tsx
+- components/Auth/SignupForm.tsx
+- components/Common/LoadingSpinner.tsx
+- components/Common/ErrorBoundary.tsx
+- components/Common/Toast.tsx
+
+## Pages
+- pages/index.tsx
+- pages/dashboard.tsx
+- pages/prompts/index.tsx
+- pages/prompts/[id].tsx
+- pages/prompts/new.tsx
+- pages/tools/index.tsx
+- pages/tools/[id].tsx
+- pages/evaluations/index.tsx
+- pages/auth/login.tsx
+- pages/auth/signup.tsx
+
+## Services
+- services/api.service.ts
+- services/auth.service.ts
+- services/prompt.service.ts
+- services/tool.service.ts
+- services/evaluation.service.ts
+- services/analytics.service.ts
+- services/error.service.ts
+- services/monitoring.service.ts
+- services/security.service.ts
+- services/performance.service.ts
+
+## Hooks
+- hooks/useAuth.ts
+- hooks/usePrompt.ts
+- hooks/useTool.ts
+- hooks/useEvaluation.ts
+- hooks/useAnalytics.ts
+- hooks/useError.ts
+- hooks/useMonitoring.ts
+- hooks/useSecurity.ts
+- hooks/usePerformance.ts
+
+## Store
+- store/index.ts
+- store/rootReducer.ts
+- store/auth/authSlice.ts
+- store/prompts/promptsSlice.ts
+- store/tools/toolsSlice.ts
+- store/evaluations/evaluationsSlice.ts
+- store/ui/uiSlice.ts
+
+## Types
+- types/auth.types.ts
+- types/prompt.types.ts
+- types/tool.types.ts
+- types/evaluation.types.ts
+- types/analytics.types.ts
+- types/error.types.ts
+- types/monitoring.types.ts
+- types/security.types.ts
+- types/api.types.ts
+
+## Utils
+- utils/api.ts
+- utils/validation.ts
+- utils/formatting.ts
+- utils/testing.ts
+- utils/security.ts
+- utils/logger.ts
+
+## Config
+- config/index.ts
+- config/api.config.ts
+- config/auth.config.ts
+- config/analytics.config.ts
+- config/monitoring.config.ts
+- config/security.config.ts
+
+## Middleware
+- middleware/auth.middleware.ts
+- middleware/error.middleware.ts
+- middleware/analytics.middleware.ts
+- middleware/monitoring.middleware.ts
+- middleware/security.middleware.ts
+
+## Testing
+- test/setup.ts
+- test/mocks/handlers.ts
+- test/mocks/mockData.ts
+- test/utils/test-utils.ts
+- e2e/prompt-engineering.spec.ts
+- e2e/tool-execution.spec.ts
+- e2e/auth-flow.spec.ts
+
+## Deployment
+- Dockerfile
+- nginx.conf
+- .dockerignore
+- .env.example
+- .env.production
+
+# Core Backend Files (apps/backend/src)
+
+## Controllers
+- controllers/auth.controller.ts
+- controllers/prompt.controller.ts
+- controllers/tool.controller.ts
+- controllers/evaluation.controller.ts
+- controllers/analytics.controller.ts
+
+## Services
+- services/auth.service.ts
+- services/prompt.service.ts
+- services/tool.service.ts
+- services/evaluation.service.ts
+- services/analytics.service.ts
+- services/ai.service.ts
+
+## Models
+- models/User.ts
+- models/Prompt.ts
+- models/Tool.ts
+- models/Evaluation.ts
+- models/Analytics.ts
+
+## Middleware
+- middleware/auth.middleware.ts
+- middleware/error.middleware.ts
+- middleware/validation.middleware.ts
+- middleware/rate-limit.middleware.ts
+
+## Database
+- database/index.ts
+- database/migrations/
+- database/seeds/
+
+## AI Integration
+- ai/openai.ts
+- ai/anthropic.ts
+- ai/huggingface.ts
+- ai/prompt-templates.ts
+- ai/evaluation-metrics.ts
+
+## Utils
+- utils/validation.ts
+- utils/security.ts
+- utils/logger.ts
+- utils/metrics.ts
+
+## Config
+- config/index.ts
+- config/database.ts
+- config/ai.ts
+- config/security.ts
+
+## Testing
+- test/setup.ts
+- test/mocks/
+- test/integration/
+- test/unit/
+
+## Documentation
+- docs/api.md
+- docs/architecture.md
+- docs/deployment.md
+- docs/security.md
+- docs/monitoring.md
+
+# Infrastructure
+- docker-compose.yml
+- kubernetes/
+- terraform/
+- ci/.github/workflows/
+- monitoring/grafana/
+- monitoring/prometheus/
+
+# Root Configuration
+- package.json
+- tsconfig.json
+- jest.config.js
+- .eslintrc.js
+- .prettierrc

@@ -1,72 +1,73 @@
 import winston from 'winston';
 import { config } from '../config';
 
-const logLevels = {
-  error: 0,
-  warn: 1,
-  info: 2,
-  debug: 3,
-};
+const { combine, timestamp, printf, colorize, errors } = winston.format;
 
-const logColors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  debug: 'blue',
-};
+// Custom log format
+const logFormat = printf(({ level, message, timestamp, ...metadata }) => {
+  let msg = `${timestamp} [${level}] : ${message}`;
+  
+  if (Object.keys(metadata).length > 0) {
+    msg += ` ${JSON.stringify(metadata)}`;
+  }
+  
+  return msg;
+});
 
-winston.addColors(logColors);
-
-const formatters = [
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.errors({ stack: true }),
-  winston.format.splat(),
-  winston.format.json(),
-];
-
-if (config.NODE_ENV !== 'production') {
-  formatters.push(
-    winston.format.colorize(),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      return `${timestamp} [${level}]: ${message} ${
-        Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
-      }`;
-    })
-  );
-}
-
+// Create logger instance
 export const logger = winston.createLogger({
-  level: config.LOG_LEVEL,
-  levels: logLevels,
-  format: winston.format.combine(...formatters),
+  level: config.env === 'production' ? 'info' : 'debug',
+  format: combine(
+    errors({ stack: true }),
+    timestamp(),
+    logFormat
+  ),
   transports: [
+    // Console transport
     new winston.transports.Console({
-      stderrLevels: ['error'],
+      format: combine(
+        colorize(),
+        logFormat
+      ),
     }),
+    // File transport for errors
     new winston.transports.File({
       filename: 'logs/error.log',
       level: 'error',
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),
+    // File transport for all logs
     new winston.transports.File({
       filename: 'logs/combined.log',
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),
   ],
-  exceptionHandlers: [
-    new winston.transports.File({
-      filename: 'logs/exceptions.log',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-  ],
-  rejectionHandlers: [
-    new winston.transports.File({
-      filename: 'logs/rejections.log',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-  ],
-}); 
+});
+
+// Add request logging middleware
+export const requestLogger = (req: any, res: any, next: any) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info('Request completed', {
+      method: req.method,
+      url: req.url,
+      status: res.statusCode,
+      duration,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  });
+  
+  next();
+};
+
+// Export a stream for Morgan
+export const stream = {
+  write: (message: string) => {
+    logger.info(message.trim());
+  },
+}; 
